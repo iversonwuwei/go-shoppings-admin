@@ -7,13 +7,80 @@ import {
   type Category,
 } from '@/api/product'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+
+interface TreeNode { value: number; label: string; children?: TreeNode[] }
 
 const loading = ref(false)
 const list = ref<Category[]>([])
 const dialog = ref(false)
 const editing = ref<Category | null>(null)
 const form = reactive<Partial<Category>>({ name: '', parent_id: 0, sort: 0, status: 1 })
+
+const nameMap = computed(() => {
+  const m = new Map<number, string>()
+  for (const c of list.value) m.set(c.id, c.name)
+  return m
+})
+
+// 收集当前节点及其所有子孙 ID（用于编辑时禁止把父级设为自身或子孙）
+function collectDescendants(rootId: number): Set<number> {
+  const set = new Set<number>([rootId])
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const c of list.value) {
+      if (!set.has(c.id) && set.has(c.parent_id)) {
+        set.add(c.id)
+        changed = true
+      }
+    }
+  }
+  return set
+}
+
+const parentOptions = computed<TreeNode[]>(() => {
+  const forbid = editing.value ? collectDescendants(editing.value.id) : new Set<number>()
+  const byParent = new Map<number, Category[]>()
+  for (const c of list.value) {
+    if (forbid.has(c.id)) continue
+    const arr = byParent.get(c.parent_id) || []
+    arr.push(c)
+    byParent.set(c.parent_id, arr)
+  }
+  const build = (pid: number): TreeNode[] =>
+    (byParent.get(pid) || [])
+      .sort((a, b) => b.sort - a.sort || a.id - b.id)
+      .map((c) => {
+        const children = build(c.id)
+        return children.length
+          ? { value: c.id, label: c.name, children }
+          : { value: c.id, label: c.name }
+      })
+  return [{ value: 0, label: '（顶级）', children: build(0) }]
+})
+
+const sortedList = computed(() => {
+  const result: Array<Category & { _depth: number }> = []
+  const byParent = new Map<number, Category[]>()
+  for (const c of list.value) {
+    const arr = byParent.get(c.parent_id) || []
+    arr.push(c)
+    byParent.set(c.parent_id, arr)
+  }
+  const walk = (pid: number, depth: number) => {
+    const arr = (byParent.get(pid) || []).sort((a, b) => b.sort - a.sort || a.id - b.id)
+    for (const c of arr) {
+      result.push({ ...c, _depth: depth })
+      walk(c.id, depth + 1)
+    }
+  }
+  walk(0, 0)
+  // 把孤儿（parent_id 指向已不存在的节点）也追加出来，避免丢失
+  const seen = new Set(result.map((x) => x.id))
+  for (const c of list.value) if (!seen.has(c.id)) result.push({ ...c, _depth: 0 })
+  return result
+})
 
 async function load() {
   loading.value = true
@@ -100,10 +167,21 @@ onMounted(load)
       style="margin-bottom: 12px"
     />
 
-    <el-table v-loading="loading" :data="list" border stripe>
+    <el-table v-loading="loading" :data="sortedList" border stripe row-key="id">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="名称" />
-      <el-table-column prop="parent_id" label="父级 ID" width="100" />
+      <el-table-column label="名称" min-width="220">
+        <template #default="{ row }">
+          <span :style="{ paddingLeft: row._depth * 20 + 'px' }">
+            <span v-if="row._depth > 0" style="color:#909399">└ </span>{{ row.name }}
+          </span>
+        </template>
+      </el-table-column>
+      <el-table-column label="父级" width="160">
+        <template #default="{ row }">
+          <span v-if="row.parent_id === 0" style="color:#909399">顶级</span>
+          <span v-else>{{ nameMap.get(row.parent_id) || `#${row.parent_id}` }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="sort" label="排序" width="100" />
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
@@ -128,8 +206,17 @@ onMounted(load)
         <el-form-item label="分类名称" required>
           <el-input v-model="form.name" maxlength="50" />
         </el-form-item>
-        <el-form-item label="父级 ID">
-          <el-input-number v-model="form.parent_id" :min="0" style="width: 100%" />
+        <el-form-item label="父级分类">
+          <el-tree-select
+            v-model="form.parent_id"
+            :data="parentOptions"
+            node-key="value"
+            :props="{ label: 'label', children: 'children' }"
+            :default-expanded-keys="[0]"
+            check-strictly
+            style="width: 100%"
+            placeholder="不选则为顶级分类"
+          />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="form.sort" :min="0" style="width: 100%" />
