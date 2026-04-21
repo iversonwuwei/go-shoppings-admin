@@ -12,8 +12,8 @@
         <el-form-item label="平台名称">
           <el-input v-model="form.platform_name" placeholder="如：WxMall SaaS" style="max-width: 420px" />
         </el-form-item>
-        <el-form-item label="平台 Logo URL">
-          <el-input v-model="form.platform_logo" placeholder="https://..." style="max-width: 420px" />
+        <el-form-item label="平台 Logo">
+          <ImageUploader v-model="form.platform_logo" folder="logo" scope="platform" />
         </el-form-item>
         <el-form-item label="客服电话">
           <el-input v-model="form.support_phone" style="max-width: 260px" />
@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import { getPlatformSettings, updatePlatformSettings, type PlatformGlobalSettings } from '@/api/platformSettings'
+import ImageUploader from '@/components/ImageUploader.vue'
 import { ElMessage } from 'element-plus'
 import { onMounted, ref } from 'vue'
 

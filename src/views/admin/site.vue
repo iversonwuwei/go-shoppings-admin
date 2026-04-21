@@ -42,8 +42,7 @@
             <el-input v-model="brandForm.brand_name" />
           </el-form-item>
           <el-form-item label="品牌 Logo">
-            <el-input v-model="brandForm.brand_logo" placeholder="图片 URL" />
-            <img v-if="brandForm.brand_logo" :src="brandForm.brand_logo" class="logo-preview" />
+            <ImageUploader v-model="brandForm.brand_logo" folder="logo" />
           </el-form-item>
           <el-form-item label="主色调">
             <el-color-picker v-model="brandForm.primary_color" show-alpha />
@@ -95,6 +94,7 @@
 
 <script setup lang="ts">
 import { getSiteConfig, updateSiteBrand, updateSiteDeployment, updateSiteDomain, type SiteConfig } from '@/api/site'
+import ImageUploader from '@/components/ImageUploader.vue'
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 

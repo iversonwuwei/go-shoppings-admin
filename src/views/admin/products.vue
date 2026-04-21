@@ -76,8 +76,11 @@
             <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="封面 URL">
-          <el-input v-model="editing.cover_image" />
+        <el-form-item label="封面图">
+          <ImageUploader v-model="coverImage" folder="products" />
+        </el-form-item>
+        <el-form-item label="商品图">
+          <ImageUploader v-model="productImages" multiple :max="9" folder="products" />
         </el-form-item>
         <el-form-item label="价格">
           <el-input v-model="editing.price" />
@@ -112,8 +115,9 @@ import {
     type Category,
     type Product,
 } from '@/api/product'
+import ImageUploader from '@/components/ImageUploader.vue'
 import { ElMessage } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 const rows = ref<Product[]>([])
 const total = ref(0)
@@ -127,6 +131,15 @@ const categories = ref<Category[]>([])
 const dialogVisible = ref(false)
 const saving = ref(false)
 const editing = reactive<Partial<Product> & { _active: boolean; _virtual: boolean }>({ _active: true, _virtual: false, stock: 0, price: '0.00', images: [] })
+
+const coverImage = computed({
+  get: () => editing.cover_image || '',
+  set: (v: string) => { editing.cover_image = v },
+})
+const productImages = computed<string[]>({
+  get: () => (editing.images as string[]) || [],
+  set: (v: string[]) => { editing.images = v },
+})
 
 async function load() {
   loading.value = true
