@@ -51,9 +51,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { getPlatformSettings, updatePlatformSettings, type PlatformGlobalSettings } from '@/api/platformSettings'
+import { ElMessage } from 'element-plus'
+import { onMounted, ref } from 'vue'
 
 const form = ref<PlatformGlobalSettings>({
   id: 1,
