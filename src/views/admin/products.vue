@@ -185,7 +185,7 @@ async function save() {
     const payload: any = {
       name: editing.name,
       subtitle: editing.subtitle,
-      category_id: editing.category_id || 0,
+      category_id: editing.category_id || null,
       cover_image: editing.cover_image || '',
       images: editing.images || [],
       price: editing.price,

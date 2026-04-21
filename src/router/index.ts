@@ -87,6 +87,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '平台用户', role: 'platform', icon: 'User' },
       },
       {
+        path: 'platform/categories',
+        name: 'PlatformCategories',
+        component: () => import('@/views/platform/categories.vue'),
+        meta: { title: '商品分类', role: 'platform', icon: 'Menu' },
+      },
+      {
         path: 'admin/products',
         name: 'AdminProducts',
         component: () => import('@/views/admin/products.vue'),

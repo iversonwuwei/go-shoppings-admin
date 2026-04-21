@@ -3,7 +3,7 @@ import request from './request'
 export interface Product {
   id: number
   tenant_id: number
-  category_id: number
+  category_id: number | null
   name: string
   subtitle: string
   cover_image: string
@@ -61,6 +61,19 @@ export function listCategories() {
   return request.get<any, Category[]>('/admin/categories')
 }
 
-export function createCategory(c: Partial<Category>) {
-  return request.post<any, Category>('/admin/categories', c)
+// 平台端：商品分类统一管理（tenant_id=0 共享给所有租户）
+export function listPlatformCategories() {
+  return request.get<any, Category[]>('/platform/categories')
+}
+
+export function createPlatformCategory(c: Partial<Category>) {
+  return request.post<any, Category>('/platform/categories', c)
+}
+
+export function updatePlatformCategory(id: number, c: Partial<Category>) {
+  return request.put<any, Category>(`/platform/categories/${id}`, c)
+}
+
+export function deletePlatformCategory(id: number) {
+  return request.delete(`/platform/categories/${id}`)
 }

@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
-import { ArrowDown, Box, Brush, Coin, Cpu, DataBoard, Discount, Goods, Grid, Key, Link, Medal, Message, Money, OfficeBuilding, Present, PriceTag, Setting, Share, Tickets, Timer, User, Van, Wallet } from '@element-plus/icons-vue'
+import { ArrowDown, Box, Brush, Coin, Cpu, DataBoard, Discount, Goods, Grid, Key, Link, Medal, Menu, Message, Money, OfficeBuilding, Present, PriceTag, Setting, Share, Tickets, Timer, User, Van, Wallet } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -61,6 +61,7 @@ const allMenus = [
   { path: '/platform/deployments', title: '私有部署', icon: Cpu, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/settings', title: '平台设置', icon: Setting, role: 'platform', platformRoles: ['super'] },
   { path: '/platform/users', title: '平台用户', icon: User, role: 'platform', platformRoles: ['super'] },
+  { path: '/platform/categories', title: '商品分类', icon: Menu, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/admin/products', title: '商品管理', icon: Goods, role: 'tenant' },
   { path: '/admin/orders', title: '订单列表', icon: Tickets, role: 'tenant' },
   { path: '/admin/member/levels', title: '会员等级', icon: Medal, role: 'tenant' },
