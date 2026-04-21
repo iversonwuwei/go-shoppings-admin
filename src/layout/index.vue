@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
-import { ArrowDown, Box, Brush, Coin, Cpu, DataBoard, Discount, Goods, Grid, Key, Link, Medal, Message, OfficeBuilding, Present, PriceTag, Share, Tickets, Timer, Van, Wallet } from '@element-plus/icons-vue'
+import { ArrowDown, Box, Brush, Coin, Cpu, DataBoard, Discount, Goods, Grid, Key, Link, Medal, Message, Money, OfficeBuilding, Present, PriceTag, Setting, Share, Tickets, Timer, User, Van, Wallet } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -50,15 +50,17 @@ const iconMap: Record<string, any> = { DataBoard, OfficeBuilding, Goods, Tickets
 
 const allMenus = [
   { path: '/platform/dashboard', title: '平台概览', icon: DataBoard, role: 'platform' },
-  { path: '/platform/tenants', title: '租户审核', icon: OfficeBuilding, role: 'platform' },
-  { path: '/platform/plans', title: '套餐管理', icon: PriceTag, role: 'platform' },
-  { path: '/platform/features', title: '功能目录', icon: Grid, role: 'platform' },
-  { path: '/platform/payment-audit', title: '收款配置审核', icon: Wallet, role: 'platform' },
-  { path: '/platform/carriers-audit', title: '物流承运商管理', icon: Van, role: 'platform' },
-  { path: '/platform/sms', title: '短信通知', icon: Message, role: 'platform' },
-  { path: '/platform/api-access', title: '开放 API', icon: Key, role: 'platform' },
-  { path: '/platform/domains', title: '域名审核', icon: Link, role: 'platform' },
-  { path: '/platform/deployments', title: '私有部署', icon: Cpu, role: 'platform' },
+  { path: '/platform/tenants', title: '租户审核', icon: OfficeBuilding, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/plans', title: '套餐管理', icon: PriceTag, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/features', title: '功能目录', icon: Grid, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/payment-audit', title: '收款配置审核', icon: Wallet, role: 'platform', platformRoles: ['super', 'finance'] },
+  { path: '/platform/carriers-audit', title: '物流承运商管理', icon: Van, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/sms', title: '短信通知', icon: Message, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/api-access', title: '开放 API', icon: Key, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/domains', title: '域名审核', icon: Link, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/deployments', title: '私有部署', icon: Cpu, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/settings', title: '平台设置', icon: Setting, role: 'platform', platformRoles: ['super'] },
+  { path: '/platform/users', title: '平台用户', icon: User, role: 'platform', platformRoles: ['super'] },
   { path: '/admin/products', title: '商品管理', icon: Goods, role: 'tenant' },
   { path: '/admin/orders', title: '订单列表', icon: Tickets, role: 'tenant' },
   { path: '/admin/member/levels', title: '会员等级', icon: Medal, role: 'tenant' },
@@ -71,9 +73,19 @@ const allMenus = [
   { path: '/admin/site', title: '站点品牌', icon: Brush, role: 'tenant' },
   { path: '/admin/settings/payment', title: '收款配置', icon: Wallet, role: 'tenant' },
   { path: '/admin/settings/carriers', title: '物流承运商', icon: Van, role: 'tenant' },
+  { path: '/admin/billing', title: '订阅付费', icon: Money, role: 'tenant' },
 ]
 
-const menus = computed(() => allMenus.filter((m) => m.role === user.role))
+const menus = computed(() =>
+  allMenus.filter((m) => {
+    if (m.role !== user.role) return false
+    if (m.role === 'platform' && m.platformRoles) {
+      const r = user.admin?.role || ''
+      if (!m.platformRoles.includes(r)) return false
+    }
+    return true
+  }),
+)
 const currentTitle = computed(() => (route.meta.title as string) || '')
 
 function handleCmd(cmd: string) {
