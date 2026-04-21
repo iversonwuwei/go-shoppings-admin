@@ -36,10 +36,10 @@
 </template>
 
 <script setup lang="ts">
-import { uploadImage } from '@/api/upload'
-import { Delete, Loading, Plus, View } from '@element-plus/icons-vue'
-import { ElMessage, type UploadRequestOptions } from 'element-plus'
-import { computed, ref } from 'vue'
+import { uploadImage } from '@/api/upload';
+import { Delete, Loading, Plus, View } from '@element-plus/icons-vue';
+import { ElMessage, type UploadRequestOptions } from 'element-plus';
+import { computed, ref } from 'vue';
 
 const props = withDefaults(
   defineProps<{

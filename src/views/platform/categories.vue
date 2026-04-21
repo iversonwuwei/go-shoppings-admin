@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import {
-  createPlatformCategory,
-  deletePlatformCategory,
-  listPlatformCategories,
-  updatePlatformCategory,
-  type Category,
-} from '@/api/product'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+    createPlatformCategory,
+    deletePlatformCategory,
+    listPlatformCategories,
+    updatePlatformCategory,
+    type Category,
+} from '@/api/product';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { computed, onMounted, reactive, ref } from 'vue';
 
 interface TreeNode { value: number; label: string; children?: TreeNode[] }
 

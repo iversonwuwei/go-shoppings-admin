@@ -113,17 +113,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import {
-  PLATFORM_ROLES,
-  createPlatformUser,
-  deletePlatformUser,
-  listPlatformUsers,
-  resetPlatformUserPassword,
-  updatePlatformUser,
-  type PlatformUser,
+    PLATFORM_ROLES,
+    createPlatformUser,
+    deletePlatformUser,
+    listPlatformUsers,
+    resetPlatformUserPassword,
+    updatePlatformUser,
+    type PlatformUser,
 } from '@/api/platformUsers'
+import { ElMessage } from 'element-plus'
+import { computed, onMounted, ref } from 'vue'
 
 const rows = ref<PlatformUser[]>([])
 const total = ref(0)

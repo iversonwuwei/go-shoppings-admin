@@ -12,7 +12,10 @@ export interface TenantRow {
   contact_phone: string
   contact_email: string
   plan_id: number
+  plan_expire_at?: string
   status: number
+  extra_features?: string[]
+  reject_reason?: string
   created_at: string
 }
 
@@ -25,4 +28,21 @@ export function listTenants(params: { page?: number; size?: number; keyword?: st
 
 export function auditTenant(id: number, approve: boolean, reason = '') {
   return request.post(`/platform/tenants/${id}/audit`, { approve, reason })
+}
+
+// 平台手动封禁 / 恢复（status: 1=正常, 3=封禁）
+export function updateTenantStatus(id: number, status: number, reason = '') {
+  return request.patch(`/platform/tenants/${id}/status`, { status, reason })
+}
+
+// 平台修改套餐 / 续期
+export function updateTenantPlan(id: number, planID: number, planExpireAt?: string) {
+  const body: Record<string, unknown> = { plan_id: planID }
+  if (planExpireAt) body.plan_expire_at = planExpireAt
+  return request.patch(`/platform/tenants/${id}/plan`, body)
+}
+
+// 平台为租户单独授予/撤销附加功能
+export function updateTenantFeatures(id: number, extraFeatures: string[]) {
+  return request.patch(`/platform/tenants/${id}/features`, { extra_features: extraFeatures })
 }
