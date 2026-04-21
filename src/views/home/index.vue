@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { sendVerifyCode } from '@/api/auth'
 import request from '@/api/request'
 import {
     DataBoard,
@@ -10,7 +11,7 @@ import {
     Wallet,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 interface Plan {
@@ -41,7 +42,52 @@ const form = reactive({
   contact_email: '',
   brand_name: '',
   plan_id: 0 as number,
+  billing_cycle: 'yearly' as 'monthly' | 'yearly',
+  username: '',
+  password: '',
+  confirm: '',
+  verify_code: '',
 })
+
+const selectedPlan = computed<Plan | undefined>(() => plans.value.find((p) => p.id === form.plan_id))
+const priceSummary = computed(() => {
+  const p = selectedPlan.value
+  if (!p) return ''
+  if (form.billing_cycle === 'monthly') {
+    return `¥${fmt(p.monthly_fee)} / 月（首月 30 天免费试用，到期后按月续费）`
+  }
+  const discount = yearlyDiscount(p)
+  const tail = discount > 0 ? `（相比月付节省 ${discount}%，30 天免费试用后按年续费）` : '（30 天免费试用后按年续费）'
+  return `¥${fmt(p.yearly_fee)} / 年${tail}`
+})
+const applyCountdown = ref(0)
+const sendingCode = ref(false)
+
+function startApplyCountdown() {
+  applyCountdown.value = 60
+  const timer = setInterval(() => {
+    applyCountdown.value--
+    if (applyCountdown.value <= 0) clearInterval(timer)
+  }, 1000)
+}
+
+async function sendApplyCode() {
+  if (!form.contact_phone) {
+    return ElMessage.warning('请先填写联系电话')
+  }
+  sendingCode.value = true
+  try {
+    const r = await sendVerifyCode(form.contact_phone, 'apply', { scope: 'public' })
+    startApplyCountdown()
+    if (r?.dev_code) {
+      ElMessage.success(`验证码已发送（联调：${r.dev_code}）`)
+    } else {
+      ElMessage.success('验证码已发送')
+    }
+  } finally {
+    sendingCode.value = false
+  }
+}
 
 async function loadPlans() {
   loading.value = true
@@ -72,8 +118,9 @@ function yearlyDiscount(p: Plan) {
   return pct > 0 ? pct : 0
 }
 
-function openApply(planId?: number) {
+function openApply(planId?: number, cycle?: 'monthly' | 'yearly') {
   if (planId) form.plan_id = planId
+  form.billing_cycle = cycle || billing.value
   dialog.value = true
 }
 
@@ -81,16 +128,31 @@ async function submit() {
   if (!form.code || !form.company_name || !form.contact_phone) {
     return ElMessage.warning('请填写商户编码、公司名称与联系电话')
   }
+  if (!form.username || !form.password) {
+    return ElMessage.warning('请设置管理员用户名和密码')
+  }
+  if (form.password.length < 6) {
+    return ElMessage.warning('管理员密码至少 6 位')
+  }
+  if (form.password !== form.confirm) {
+    return ElMessage.warning('两次输入的密码不一致')
+  }
+  if (!form.verify_code) {
+    return ElMessage.warning('请输入手机验证码')
+  }
   submitting.value = true
   try {
     const r = await request.post<any, { id: number; code: string; status: number }>('/public/apply', form)
     dialog.value = false
     await ElMessageBox.alert(
-      `入驻申请已提交！您的商户编码为 ${r.code}，待平台审核通过后，您将可使用此编码登录商户后台。`,
+      `入驻申请已提交！您的商户编码为 ${r.code}，管理员账号已创建，待平台审核通过后即可登录商户后台。`,
       '提交成功',
       { confirmButtonText: '好的' },
     )
-    Object.assign(form, { code:'', company_name:'', contact_name:'', contact_phone:'', contact_email:'', brand_name:'' })
+    Object.assign(form, {
+      code: '', company_name: '', contact_name: '', contact_phone: '', contact_email: '', brand_name: '',
+      username: '', password: '', confirm: '', verify_code: '', billing_cycle: 'yearly',
+    })
   } finally { submitting.value = false }
 }
 
@@ -198,7 +260,7 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
             <li>用户规模：{{ p.user_limit === 0 ? '不限' : p.user_limit }}</li>
             <li v-for="(feat, i) in (p.features || [])" :key="i">{{ featLabel(feat) }}</li>
           </ul>
-          <el-button type="primary" plain style="width:100%" @click="openApply(p.id)">选择此套餐</el-button>
+          <el-button type="primary" plain style="width:100%" @click="openApply(p.id, billing)">选择此套餐（{{ billing === 'monthly' ? '按月付' : '按年付' }}）</el-button>
         </el-card>
       </div>
     </section>
@@ -214,8 +276,9 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
       <p>© {{ new Date().getFullYear() }} 微信商城 SaaS · 为企业提供专业的私域电商能力</p>
     </footer>
 
-    <el-dialog v-model="dialog" title="申请入驻" width="560px">
-      <el-form :model="form" label-width="110px">
+    <el-dialog v-model="dialog" title="申请入驻" width="640px">
+      <el-form :model="form" label-width="120px">
+        <el-divider content-position="left">企业信息</el-divider>
         <el-form-item label="商户编码" required>
           <el-input v-model="form.code" placeholder="英文数字组合，如 acme2026" maxlength="30" />
         </el-form-item>
@@ -229,7 +292,15 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
           <el-input v-model="form.contact_name" />
         </el-form-item>
         <el-form-item label="联系电话" required>
-          <el-input v-model="form.contact_phone" />
+          <el-input v-model="form.contact_phone" maxlength="20" />
+        </el-form-item>
+        <el-form-item label="手机验证码" required>
+          <div class="apply-code-row">
+            <el-input v-model="form.verify_code" maxlength="6" placeholder="6 位验证码" />
+            <el-button :disabled="applyCountdown > 0 || !form.contact_phone" :loading="sendingCode" @click="sendApplyCode">
+              {{ applyCountdown > 0 ? `${applyCountdown}s 后重试` : '发送验证码' }}
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label="邮箱">
           <el-input v-model="form.contact_email" />
@@ -243,6 +314,24 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
               :value="p.id"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="计费周期" required>
+          <el-radio-group v-model="form.billing_cycle">
+            <el-radio-button label="monthly">按月付</el-radio-button>
+            <el-radio-button label="yearly">按年付（更划算）</el-radio-button>
+          </el-radio-group>
+          <div class="price-summary">{{ priceSummary }}</div>
+        </el-form-item>
+
+        <el-divider content-position="left">管理员账号</el-divider>
+        <el-form-item label="管理员用户名" required>
+          <el-input v-model="form.username" placeholder="登录商户后台时使用" maxlength="30" />
+        </el-form-item>
+        <el-form-item label="登录密码" required>
+          <el-input v-model="form.password" type="password" show-password placeholder="至少 6 位" />
+        </el-form-item>
+        <el-form-item label="再次输入密码" required>
+          <el-input v-model="form.confirm" type="password" show-password />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -298,6 +387,19 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
 }
 
 .pricing { background:#fafafa; }
+
+.apply-code-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  .el-input { flex: 1; }
+}
+.price-summary {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.6;
+}
 .billing-switch { display:flex; justify-content:center; margin-bottom: 28px; }
 .billing-switch .save-tip {
   margin-left: 6px; padding: 1px 6px; border-radius: 8px;
