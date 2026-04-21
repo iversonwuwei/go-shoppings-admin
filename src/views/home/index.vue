@@ -260,7 +260,7 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
             <li>用户规模：{{ p.user_limit === 0 ? '不限' : p.user_limit }}</li>
             <li v-for="(feat, i) in (p.features || [])" :key="i">{{ featLabel(feat) }}</li>
           </ul>
-          <el-button type="primary" plain style="width:100%" @click="openApply(p.id, billing)">选择此套餐（{{ billing === 'monthly' ? '按月付' : '按年付' }}）</el-button>
+          <el-button type="primary" plain class="choose-btn" style="width:100%" @click="openApply(p.id, billing)">选择此套餐（{{ billing === 'monthly' ? '按月付' : '按年付' }}）</el-button>
         </el-card>
       </div>
     </section>
@@ -408,8 +408,17 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
 .plans {
   max-width: 1160px; margin: 0 auto;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;
+  align-items: stretch;
   .plan {
     border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    :deep(.el-card__body) {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
     .plan-head { display:flex; justify-content:space-between; align-items:center; }
     h3 { margin: 0; }
     .price { margin-top: 10px; .amount { font-size: 32px; font-weight: 700; color:#111827; } .per { color:#6b7280; } }
@@ -417,7 +426,8 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
       color:#9ca3af; font-size: 12px; margin-bottom: 14px;
       .save { margin-left: 6px; padding: 1px 6px; border-radius: 8px; background:#ecfdf5; color:#059669; font-weight:600; }
     }
-    ul { padding-left: 18px; color:#4b5563; font-size: 14px; line-height: 2; }
+    ul { padding-left: 18px; color:#4b5563; font-size: 14px; line-height: 2; flex: 1; }
+    .choose-btn { margin-top: auto; }
     &.featured { border: 2px solid #409eff; }
   }
 }
