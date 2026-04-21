@@ -54,10 +54,10 @@ const priceSummary = computed(() => {
   const p = selectedPlan.value
   if (!p) return ''
   if (form.billing_cycle === 'monthly') {
-    return `¥${fmt(p.monthly_fee)} / 月（首月 30 天免费试用，到期后按月续费）`
+    return `¥${fmt(p.monthly_fee)} / 月（首月 7 天免费试用，试用期内可随时付费续订）`
   }
   const discount = yearlyDiscount(p)
-  const tail = discount > 0 ? `（相比月付节省 ${discount}%，30 天免费试用后按年续费）` : '（30 天免费试用后按年续费）'
+  const tail = discount > 0 ? `（相比月付节省 ${discount}%，7 天免费试用，试用期内可随时付费续订）` : '（7 天免费试用，试用期内可随时付费续订）'
   return `¥${fmt(p.yearly_fee)} / 年${tail}`
 })
 const applyCountdown = ref(0)
@@ -200,7 +200,7 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
     <section class="hero">
       <div class="inner">
         <h1>让每一家企业都能拥有自己的微信商城</h1>
-        <p>SaaS 多租户架构 · 开箱即用 · 30 天免费试用，<br />覆盖商品、订单、支付、营销、物流全链路。</p>
+        <p>SaaS 多租户架构 · 开箱即用 · 7 天免费试用，<br />覆盖商品、订单、支付、营销、物流全链路。</p>
         <div class="cta">
           <el-button type="primary" size="large" @click="openApply()">立即申请入驻</el-button>
           <el-button size="large" @click="router.push('/login')">登录后台</el-button>
@@ -227,7 +227,7 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
 
     <section class="section pricing">
       <h2>套餐与定价</h2>
-      <p class="sub">先免费试用 30 天，随业务增长灵活升级</p>
+      <p class="sub">先免费试用7 天，试用期内可随时付费续订，随业务增长灵活升级</p>
       <div class="billing-switch">
         <el-radio-group v-model="billing" size="large">
           <el-radio-button label="monthly">按月付</el-radio-button>

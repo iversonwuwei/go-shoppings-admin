@@ -146,6 +146,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/settings/carriers.vue'),
         meta: { title: '物流承运商', role: 'tenant', icon: 'Van' },
       },
+      {
+        path: 'admin/billing',
+        name: 'AdminBilling',
+        component: () => import('@/views/admin/billing.vue'),
+        meta: { title: '订阅付费', role: 'tenant', icon: 'Money' },
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', component: () => import('@/views/404.vue'), meta: { public: true } },
