@@ -13,8 +13,8 @@
       <el-tabs v-model="mode" class="mode-tabs">
         <el-tab-pane label="密码登录" name="password">
           <el-form :model="pwdForm" label-position="top" @submit.prevent="submitPassword">
-            <el-form-item v-if="role === 'tenant'" label="租户 ID">
-              <el-input-number v-model="pwdForm.tenantId" :min="1" :step="1" :controls="false" placeholder="例如 1" style="width: 100%" />
+            <el-form-item v-if="role === 'tenant'" label="租户编号 / 子域名">
+              <el-input v-model="pwdForm.tenantCode" placeholder="例如 acme-shop" autocomplete="organization" />
             </el-form-item>
             <el-form-item label="用户名">
               <el-input v-model="pwdForm.username" placeholder="用户名" autocomplete="username" />
@@ -30,8 +30,8 @@
 
         <el-tab-pane label="短信登录" name="sms">
           <el-form :model="smsForm" label-position="top" @submit.prevent="submitSMSLogin">
-            <el-form-item v-if="role === 'tenant'" label="租户 ID">
-              <el-input-number v-model="smsForm.tenantId" :min="1" :step="1" :controls="false" placeholder="例如 1" style="width: 100%" />
+            <el-form-item v-if="role === 'tenant'" label="租户编号 / 子域名">
+              <el-input v-model="smsForm.tenantCode" placeholder="例如 acme-shop" autocomplete="organization" />
             </el-form-item>
             <el-form-item label="手机号">
               <el-input v-model="smsForm.phone" placeholder="已绑定到管理员账号的手机号" maxlength="20" />
@@ -56,7 +56,7 @@
         <el-link type="success" :underline="false" @click="openApply">申请入驻</el-link>
         <span class="hint-tip">
           <span v-if="role === 'platform'">默认平台账号: admin / admin123</span>
-          <span v-else>商户端登录需传 X-Tenant-ID 请求头</span>
+          <span v-else>请使用申请入驻时设置的「租户编号」登录</span>
         </span>
       </div>
     </el-card>
@@ -64,8 +64,8 @@
     <!-- 忘记密码对话框 -->
     <el-dialog v-model="forgotDialog" title="重置密码" width="420px">
       <el-form :model="forgotForm" label-position="top">
-        <el-form-item v-if="role === 'tenant'" label="租户 ID">
-          <el-input-number v-model="forgotForm.tenantId" :min="1" :step="1" :controls="false" style="width: 100%" />
+        <el-form-item v-if="role === 'tenant'" label="租户编号 / 子域名">
+          <el-input v-model="forgotForm.tenantCode" placeholder="例如 acme-shop" />
         </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="forgotForm.phone" placeholder="绑定管理员账号的手机号" />
@@ -177,6 +177,7 @@ import {
     platformLogin,
     platformLoginBySMS,
     platformResetPassword,
+    resolveTenantByCode,
     sendVerifyCode,
     tenantLogin,
     tenantLoginBySMS,
@@ -200,13 +201,13 @@ const loading = ref(false)
 const sending = ref(false)
 const resetting = ref(false)
 
-const pwdForm = reactive({ username: 'admin', password: 'admin123', tenantId: 1 })
-const smsForm = reactive({ phone: '', code: '', tenantId: 1 })
+const pwdForm = reactive({ username: 'admin', password: 'admin123', tenantCode: '' })
+const smsForm = reactive({ phone: '', code: '', tenantCode: '' })
 
 const smsCountdown = ref(0)
 const forgotCountdown = ref(0)
 const forgotDialog = ref(false)
-const forgotForm = reactive({ phone: '', code: '', newPassword: '', confirm: '', tenantId: 1 })
+const forgotForm = reactive({ phone: '', code: '', newPassword: '', confirm: '', tenantCode: '' })
 
 // 申请入驻
 const applyDialog = ref(false)
@@ -238,6 +239,25 @@ function startCountdown(target: 'sms' | 'forgot' | 'apply') {
   }, 1000)
 }
 
+// 按租户编号解析出内部 ID（简单内存缓存，避免重复调用）
+const tenantIdCache = new Map<string, number>()
+async function resolveTid(code: string): Promise<number | null> {
+  const key = (code || '').trim().toLowerCase()
+  if (!key) {
+    ElMessage.warning('请输入租户编号')
+    return null
+  }
+  if (tenantIdCache.has(key)) return tenantIdCache.get(key)!
+  try {
+    const t = await resolveTenantByCode(key)
+    tenantIdCache.set(key, t.id)
+    return t.id
+  } catch {
+    ElMessage.error('未找到该租户编号，请确认或联系平台')
+    return null
+  }
+}
+
 async function handleSendCode(phone: string, purpose: VerifyPurpose, tenantId: number, target: 'sms' | 'forgot' | 'apply') {
   if (!phone) {
     ElMessage.warning('请先填写手机号')
@@ -259,12 +279,24 @@ async function handleSendCode(phone: string, purpose: VerifyPurpose, tenantId: n
   }
 }
 
-function sendLoginCode() {
-  return handleSendCode(smsForm.phone, 'login', smsForm.tenantId, 'sms')
+async function sendLoginCode() {
+  let tid = 0
+  if (role.value === 'tenant') {
+    const r = await resolveTid(smsForm.tenantCode)
+    if (!r) return
+    tid = r
+  }
+  return handleSendCode(smsForm.phone, 'login', tid, 'sms')
 }
 
-function sendForgotCode() {
-  return handleSendCode(forgotForm.phone, 'reset_password', forgotForm.tenantId, 'forgot')
+async function sendForgotCode() {
+  let tid = 0
+  if (role.value === 'tenant') {
+    const r = await resolveTid(forgotForm.tenantCode)
+    if (!r) return
+    tid = r
+  }
+  return handleSendCode(forgotForm.phone, 'reset_password', tid, 'forgot')
 }
 
 function sendApplyCode() {
@@ -328,12 +360,10 @@ async function submitPassword() {
       const resp = await platformLogin(pwdForm.username, pwdForm.password)
       user.setSession(resp.token, resp.refresh_token, resp.admin, 'platform', 0)
     } else {
-      if (!pwdForm.tenantId) {
-        ElMessage.warning('请输入租户 ID')
-        return
-      }
-      const resp = await tenantLogin(pwdForm.username, pwdForm.password, pwdForm.tenantId)
-      user.setSession(resp.token, resp.refresh_token, resp.admin, 'tenant', pwdForm.tenantId)
+      const tid = await resolveTid(pwdForm.tenantCode)
+      if (!tid) return
+      const resp = await tenantLogin(pwdForm.username, pwdForm.password, tid)
+      user.setSession(resp.token, resp.refresh_token, resp.admin, 'tenant', tid)
     }
     redirectAfterLogin()
   } finally {
@@ -352,12 +382,10 @@ async function submitSMSLogin() {
       const resp = await platformLoginBySMS(smsForm.phone, smsForm.code)
       user.setSession(resp.token, resp.refresh_token, resp.admin, 'platform', 0)
     } else {
-      if (!smsForm.tenantId) {
-        ElMessage.warning('请输入租户 ID')
-        return
-      }
-      const resp = await tenantLoginBySMS(smsForm.phone, smsForm.code, smsForm.tenantId)
-      user.setSession(resp.token, resp.refresh_token, resp.admin, 'tenant', smsForm.tenantId)
+      const tid = await resolveTid(smsForm.tenantCode)
+      if (!tid) return
+      const resp = await tenantLoginBySMS(smsForm.phone, smsForm.code, tid)
+      user.setSession(resp.token, resp.refresh_token, resp.admin, 'tenant', tid)
     }
     redirectAfterLogin()
   } finally {
@@ -375,7 +403,7 @@ function openForgot() {
   forgotForm.code = ''
   forgotForm.newPassword = ''
   forgotForm.confirm = ''
-  forgotForm.tenantId = pwdForm.tenantId || 1
+  forgotForm.tenantCode = pwdForm.tenantCode || ''
   forgotDialog.value = true
 }
 
@@ -397,11 +425,9 @@ async function submitReset() {
     if (role.value === 'platform') {
       await platformResetPassword(forgotForm.phone, forgotForm.code, forgotForm.newPassword)
     } else {
-      if (!forgotForm.tenantId) {
-        ElMessage.warning('请输入租户 ID')
-        return
-      }
-      await tenantResetPassword(forgotForm.phone, forgotForm.code, forgotForm.newPassword, forgotForm.tenantId)
+      const tid = await resolveTid(forgotForm.tenantCode)
+      if (!tid) return
+      await tenantResetPassword(forgotForm.phone, forgotForm.code, forgotForm.newPassword, tid)
     }
     ElMessage.success('密码已重置，请使用新密码登录')
     forgotDialog.value = false

@@ -22,6 +22,19 @@ export interface SendCodeResp {
 
 export type VerifyPurpose = 'apply' | 'login' | 'reset_password'
 
+// 通过租户编号（子域名）解析出租户 ID，避免用户直接输入数字主键
+export interface TenantSummary {
+  id: number
+  code: string
+  status: number
+  company_name?: string
+  brand_name?: string
+}
+
+export function resolveTenantByCode(code: string) {
+  return request.get<TenantSummary, TenantSummary>('/public/tenant/resolve', { params: { code } })
+}
+
 export function platformLogin(username: string, password: string) {
   return request.post<LoginResp, LoginResp>('/platform/auth/login', { username, password })
 }
