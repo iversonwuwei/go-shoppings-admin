@@ -8,11 +8,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: Layout,
-    redirect: () => {
-      const user = useUserStore()
-      if (!user.isLoggedIn) return '/home'
-      return user.role === 'platform' ? '/platform/dashboard' : '/admin/products'
-    },
+    redirect: () => '/home',
     children: [
       {
         path: 'platform/dashboard',
