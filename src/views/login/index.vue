@@ -14,7 +14,7 @@
         <el-tab-pane label="密码登录" name="password">
           <el-form :model="pwdForm" label-position="top" @submit.prevent="submitPassword">
             <el-form-item v-if="role === 'tenant'" label="租户 ID">
-              <el-input v-model.number="pwdForm.tenantId" placeholder="例如 1" type="number" />
+              <el-input-number v-model="pwdForm.tenantId" :min="1" :step="1" :controls="false" placeholder="例如 1" style="width: 100%" />
             </el-form-item>
             <el-form-item label="用户名">
               <el-input v-model="pwdForm.username" placeholder="用户名" autocomplete="username" />
@@ -31,7 +31,7 @@
         <el-tab-pane label="短信登录" name="sms">
           <el-form :model="smsForm" label-position="top" @submit.prevent="submitSMSLogin">
             <el-form-item v-if="role === 'tenant'" label="租户 ID">
-              <el-input v-model.number="smsForm.tenantId" placeholder="例如 1" type="number" />
+              <el-input-number v-model="smsForm.tenantId" :min="1" :step="1" :controls="false" placeholder="例如 1" style="width: 100%" />
             </el-form-item>
             <el-form-item label="手机号">
               <el-input v-model="smsForm.phone" placeholder="已绑定到管理员账号的手机号" maxlength="20" />
@@ -65,7 +65,7 @@
     <el-dialog v-model="forgotDialog" title="重置密码" width="420px">
       <el-form :model="forgotForm" label-position="top">
         <el-form-item v-if="role === 'tenant'" label="租户 ID">
-          <el-input v-model.number="forgotForm.tenantId" type="number" />
+          <el-input-number v-model="forgotForm.tenantId" :min="1" :step="1" :controls="false" style="width: 100%" />
         </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="forgotForm.phone" placeholder="绑定管理员账号的手机号" />

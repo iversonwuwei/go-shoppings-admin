@@ -5,7 +5,7 @@
       <el-tab-pane label="API 凭据" name="tokens">
         <el-form inline class="filter">
           <el-form-item label="租户ID">
-            <el-input v-model.number="tenantId" placeholder="可留空查全部" clearable style="width: 140px" />
+            <el-input-number v-model="tenantId" :min="1" :step="1" :controls="false" placeholder="可留空查全部" style="width: 140px" />
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="loadTokens">查询</el-button>
@@ -84,7 +84,7 @@
       <el-tab-pane label="调用日志" name="logs">
         <el-form inline class="filter">
           <el-form-item label="租户ID">
-            <el-input v-model.number="logTenantId" clearable style="width: 120px" />
+            <el-input-number v-model="logTenantId" :min="1" :step="1" :controls="false" style="width: 120px" />
           </el-form-item>
           <el-form-item label="TokenID">
             <el-input v-model.number="logTokenId" clearable style="width: 120px" />
