@@ -5,3 +5,7 @@ dist
 .DS_Store
 auto-imports.d.ts
 components.d.ts
+
+push.log
+tsc.log
+
