@@ -81,6 +81,7 @@ export function tenantResetPassword(phone: string, code: string, newPassword: st
 export interface ApplyTenantBody {
   code: string            // 租户编号 / 子域名
   company_name: string    // 公司名称
+  brand_name?: string     // 品牌名（小程序展示）
   contact_name: string    // 联系人
   contact_phone: string   // 联系电话（同时作为管理员手机号）
   contact_email?: string  // 联系邮箱
@@ -88,6 +89,7 @@ export interface ApplyTenantBody {
   billing_cycle?: 'monthly' | 'yearly'
   username: string        // 管理员账号
   password: string        // 管理员密码
+  confirm?: string        // 再次输入密码（前端校验，后端忽略）
   verify_code: string     // 手机号验证码
 }
 

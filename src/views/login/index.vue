@@ -107,6 +107,9 @@
         <el-form-item label="租户编号 / 子域名" required>
           <el-input v-model="applyForm.code" maxlength="30" placeholder="小写字母/数字/连字符，例如 acme-shop" />
         </el-form-item>
+        <el-form-item label="品牌名">
+          <el-input v-model="applyForm.brand_name" maxlength="100" placeholder="展示在小程序的品牌名称" />
+        </el-form-item>
         <div class="apply-row">
           <el-form-item label="联系人" required style="flex:1">
             <el-input v-model="applyForm.contact_name" maxlength="50" />
@@ -121,7 +124,12 @@
         <div class="apply-row">
           <el-form-item label="套餐" style="flex:1">
             <el-select v-model="applyForm.plan_id" placeholder="可选，默认平台推荐" clearable style="width: 100%">
-              <el-option v-for="p in publicPlans" :key="p.id" :label="`${p.name}（${p.code}）`" :value="p.id" />
+              <el-option
+                v-for="p in publicPlans"
+                :key="p.id"
+                :label="`${p.name} — ¥${Number(p.monthly_fee || 0)}/月 · ¥${Number(p.yearly_fee || 0)}/年`"
+                :value="p.id"
+              />
             </el-select>
           </el-form-item>
           <el-form-item label="计费周期" style="flex:1">
@@ -131,12 +139,15 @@
             </el-select>
           </el-form-item>
         </div>
+        <el-form-item label="管理员账号" required>
+          <el-input v-model="applyForm.username" maxlength="50" placeholder="登录用户名" />
+        </el-form-item>
         <div class="apply-row">
-          <el-form-item label="管理员账号" required style="flex:1">
-            <el-input v-model="applyForm.username" maxlength="50" placeholder="登录用户名" />
-          </el-form-item>
-          <el-form-item label="管理员密码" required style="flex:1">
+          <el-form-item label="登录密码" required style="flex:1">
             <el-input v-model="applyForm.password" type="password" show-password maxlength="50" placeholder="至少 6 位" />
+          </el-form-item>
+          <el-form-item label="再次输入密码" required style="flex:1">
+            <el-input v-model="applyForm.confirm" type="password" show-password maxlength="50" placeholder="再次输入以确认" />
           </el-form-item>
         </div>
         <el-form-item label="手机号验证码" required>
@@ -205,6 +216,7 @@ const publicPlans = ref<Plan[]>([])
 const applyForm = reactive<ApplyTenantBody>({
   code: '',
   company_name: '',
+  brand_name: '',
   contact_name: '',
   contact_phone: '',
   contact_email: '',
@@ -212,6 +224,7 @@ const applyForm = reactive<ApplyTenantBody>({
   billing_cycle: 'yearly',
   username: '',
   password: '',
+  confirm: '',
   verify_code: '',
 })
 
@@ -262,6 +275,7 @@ async function openApply() {
   Object.assign(applyForm, {
     code: '',
     company_name: '',
+    brand_name: '',
     contact_name: '',
     contact_phone: '',
     contact_email: '',
@@ -269,6 +283,7 @@ async function openApply() {
     billing_cycle: 'yearly',
     username: '',
     password: '',
+    confirm: '',
     verify_code: '',
   })
   applyDialog.value = true
@@ -290,6 +305,7 @@ async function submitApply() {
   if (!f.contact_name || !f.contact_phone) return ElMessage.warning('请填写联系人与联系电话')
   if (!f.username || !f.password) return ElMessage.warning('请填写管理员账号和密码')
   if (f.password.length < 6) return ElMessage.warning('管理员密码至少 6 位')
+  if (f.password !== f.confirm) return ElMessage.warning('两次输入的密码不一致')
   if (!f.verify_code) return ElMessage.warning('请填写手机号验证码')
   applying.value = true
   try {
