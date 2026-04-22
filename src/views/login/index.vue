@@ -53,6 +53,7 @@
 
       <div class="hint">
         <el-link type="primary" :underline="false" @click="openForgot">忘记密码？</el-link>
+        <el-link type="success" :underline="false" @click="openApply">申请入驻</el-link>
         <span class="hint-tip">
           <span v-if="role === 'platform'">默认平台账号: admin / admin123</span>
           <span v-else>商户端登录需传 X-Tenant-ID 请求头</span>
@@ -89,11 +90,79 @@
         <el-button type="primary" :loading="resetting" @click="submitReset">确认重置</el-button>
       </template>
     </el-dialog>
+
+    <!-- 申请入驻对话框 -->
+    <el-dialog v-model="applyDialog" title="申请入驻" width="560px" :close-on-click-modal="false">
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 12px"
+        title="提交后进入「待审核」状态，平台审核通过后即可登录。联系电话将作为管理员账号手机号，可用于短信登录 / 找回密码。"
+      />
+      <el-form :model="applyForm" label-position="top">
+        <el-form-item label="公司名称" required>
+          <el-input v-model="applyForm.company_name" maxlength="100" placeholder="营业执照上的全称" />
+        </el-form-item>
+        <el-form-item label="租户编号 / 子域名" required>
+          <el-input v-model="applyForm.code" maxlength="30" placeholder="小写字母/数字/连字符，例如 acme-shop" />
+        </el-form-item>
+        <div class="apply-row">
+          <el-form-item label="联系人" required style="flex:1">
+            <el-input v-model="applyForm.contact_name" maxlength="50" />
+          </el-form-item>
+          <el-form-item label="联系邮箱" style="flex:1">
+            <el-input v-model="applyForm.contact_email" maxlength="100" />
+          </el-form-item>
+        </div>
+        <el-form-item label="联系电话（同管理员手机号）" required>
+          <el-input v-model="applyForm.contact_phone" maxlength="20" />
+        </el-form-item>
+        <div class="apply-row">
+          <el-form-item label="套餐" style="flex:1">
+            <el-select v-model="applyForm.plan_id" placeholder="可选，默认平台推荐" clearable style="width: 100%">
+              <el-option v-for="p in publicPlans" :key="p.id" :label="`${p.name}（${p.code}）`" :value="p.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="计费周期" style="flex:1">
+            <el-select v-model="applyForm.billing_cycle" style="width: 100%">
+              <el-option label="按年" value="yearly" />
+              <el-option label="按月" value="monthly" />
+            </el-select>
+          </el-form-item>
+        </div>
+        <div class="apply-row">
+          <el-form-item label="管理员账号" required style="flex:1">
+            <el-input v-model="applyForm.username" maxlength="50" placeholder="登录用户名" />
+          </el-form-item>
+          <el-form-item label="管理员密码" required style="flex:1">
+            <el-input v-model="applyForm.password" type="password" show-password maxlength="50" placeholder="至少 6 位" />
+          </el-form-item>
+        </div>
+        <el-form-item label="手机号验证码" required>
+          <div class="code-row">
+            <el-input v-model="applyForm.verify_code" maxlength="6" placeholder="6 位验证码" />
+            <el-button
+              :disabled="applyCountdown > 0 || !applyForm.contact_phone"
+              :loading="sending"
+              @click="sendApplyCode"
+            >
+              {{ applyCountdown > 0 ? `${applyCountdown}s 后重试` : '发送验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="applyDialog = false">取消</el-button>
+        <el-button type="primary" :loading="applying" @click="submitApply">提交申请</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import {
+    applyTenant,
     platformLogin,
     platformLoginBySMS,
     platformResetPassword,
@@ -101,8 +170,10 @@ import {
     tenantLogin,
     tenantLoginBySMS,
     tenantResetPassword,
+    type ApplyTenantBody,
     type VerifyPurpose,
 } from '@/api/auth'
+import { listPublicPlans, type Plan } from '@/api/plans'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { reactive, ref } from 'vue'
@@ -126,8 +197,27 @@ const forgotCountdown = ref(0)
 const forgotDialog = ref(false)
 const forgotForm = reactive({ phone: '', code: '', newPassword: '', confirm: '', tenantId: 1 })
 
-function startCountdown(target: 'sms' | 'forgot') {
-  const setter = target === 'sms' ? smsCountdown : forgotCountdown
+// 申请入驻
+const applyDialog = ref(false)
+const applying = ref(false)
+const applyCountdown = ref(0)
+const publicPlans = ref<Plan[]>([])
+const applyForm = reactive<ApplyTenantBody>({
+  code: '',
+  company_name: '',
+  contact_name: '',
+  contact_phone: '',
+  contact_email: '',
+  plan_id: undefined,
+  billing_cycle: 'yearly',
+  username: '',
+  password: '',
+  verify_code: '',
+})
+
+function startCountdown(target: 'sms' | 'forgot' | 'apply') {
+  const setter =
+    target === 'sms' ? smsCountdown : target === 'forgot' ? forgotCountdown : applyCountdown
   setter.value = 60
   const timer = setInterval(() => {
     setter.value--
@@ -135,15 +225,15 @@ function startCountdown(target: 'sms' | 'forgot') {
   }, 1000)
 }
 
-async function handleSendCode(phone: string, purpose: VerifyPurpose, tenantId: number, target: 'sms' | 'forgot') {
+async function handleSendCode(phone: string, purpose: VerifyPurpose, tenantId: number, target: 'sms' | 'forgot' | 'apply') {
   if (!phone) {
     ElMessage.warning('请先填写手机号')
     return
   }
   sending.value = true
   try {
-    const scope = role.value === 'platform' ? 'platform' : 'tenant'
-    const tid = role.value === 'tenant' ? tenantId : undefined
+    const scope = target === 'apply' ? 'public' : role.value === 'platform' ? 'platform' : 'tenant'
+    const tid = target !== 'apply' && role.value === 'tenant' ? tenantId : undefined
     const r = await sendVerifyCode(phone, purpose, { scope, tenantId: tid })
     startCountdown(target)
     if (r?.dev_code) {
@@ -162,6 +252,53 @@ function sendLoginCode() {
 
 function sendForgotCode() {
   return handleSendCode(forgotForm.phone, 'reset_password', forgotForm.tenantId, 'forgot')
+}
+
+function sendApplyCode() {
+  return handleSendCode(applyForm.contact_phone, 'apply', 0, 'apply')
+}
+
+async function openApply() {
+  Object.assign(applyForm, {
+    code: '',
+    company_name: '',
+    contact_name: '',
+    contact_phone: '',
+    contact_email: '',
+    plan_id: undefined,
+    billing_cycle: 'yearly',
+    username: '',
+    password: '',
+    verify_code: '',
+  })
+  applyDialog.value = true
+  if (!publicPlans.value.length) {
+    try {
+      publicPlans.value = await listPublicPlans()
+    } catch {
+      publicPlans.value = []
+    }
+  }
+}
+
+async function submitApply() {
+  const f = applyForm
+  if (!f.company_name || !f.code) return ElMessage.warning('请填写公司名称和租户编号')
+  if (!/^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/.test(f.code)) {
+    return ElMessage.warning('租户编号仅支持小写字母/数字/连字符，长度 3-30')
+  }
+  if (!f.contact_name || !f.contact_phone) return ElMessage.warning('请填写联系人与联系电话')
+  if (!f.username || !f.password) return ElMessage.warning('请填写管理员账号和密码')
+  if (f.password.length < 6) return ElMessage.warning('管理员密码至少 6 位')
+  if (!f.verify_code) return ElMessage.warning('请填写手机号验证码')
+  applying.value = true
+  try {
+    await applyTenant({ ...f })
+    ElMessage.success('提交成功，请等待平台审核')
+    applyDialog.value = false
+  } finally {
+    applying.value = false
+  }
 }
 
 async function submitPassword() {
@@ -295,6 +432,11 @@ async function submitReset() {
   align-items: center;
   font-size: 12px;
   color: #999;
-  .hint-tip { font-size: 12px; }
+  gap: 12px;
+  .hint-tip { font-size: 12px; margin-left: auto; }
+}
+.apply-row {
+  display: flex;
+  gap: 12px;
 }
 </style>

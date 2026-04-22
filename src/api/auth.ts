@@ -76,3 +76,29 @@ export function tenantResetPassword(phone: string, code: string, newPassword: st
     { headers: { 'X-Tenant-ID': String(tenantId) } },
   )
 }
+
+// 入驻申请：公开接口（不需要登录态）
+export interface ApplyTenantBody {
+  code: string            // 租户编号 / 子域名
+  company_name: string    // 公司名称
+  contact_name: string    // 联系人
+  contact_phone: string   // 联系电话（同时作为管理员手机号）
+  contact_email?: string  // 联系邮箱
+  plan_id?: number        // 选购套餐
+  billing_cycle?: 'monthly' | 'yearly'
+  username: string        // 管理员账号
+  password: string        // 管理员密码
+  verify_code: string     // 手机号验证码
+}
+
+export interface ApplyTenantResp {
+  id: number
+  code: string
+  status: number
+  admin_id?: number
+  username?: string
+}
+
+export function applyTenant(body: ApplyTenantBody) {
+  return request.post<ApplyTenantResp, ApplyTenantResp>('/public/apply', body)
+}

@@ -56,3 +56,7 @@ export function deleteFeature(id: number) {
 export function listPublicFeatures() {
   return request.get<any, PlanFeature[]>('/public/features')
 }
+
+export function listPublicPlans() {
+  return request.get<any, Plan[]>('/public/plans')
+}
