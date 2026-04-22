@@ -125,12 +125,12 @@
 <script setup lang="ts">
 import { listFeatures, listPlans, type Plan, type PlanFeature } from '@/api/plans'
 import {
-  auditTenant,
-  listTenants,
-  updateTenantFeatures,
-  updateTenantPlan,
-  updateTenantStatus,
-  type TenantRow,
+    auditTenant,
+    listTenants,
+    updateTenantFeatures,
+    updateTenantPlan,
+    updateTenantStatus,
+    type TenantRow,
 } from '@/api/platform'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
