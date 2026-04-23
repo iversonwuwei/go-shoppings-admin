@@ -48,6 +48,7 @@
             <template v-else>
               <el-button size="small" @click="openPlan(row)">套餐/续期</el-button>
               <el-button size="small" @click="openFeatures(row)">附加功能</el-button>
+              <el-button size="small" @click="openQuickEntries(row)">快捷入口</el-button>
               <el-button v-if="row.status !== 3" size="small" type="danger" @click="toggleBan(row, true)">封禁</el-button>
               <el-button v-else size="small" type="success" @click="toggleBan(row, false)">恢复</el-button>
             </template>
@@ -119,6 +120,38 @@
         <el-button type="primary" @click="submitFeatures">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="quickDialog" title="商城快捷入口" width="720px">
+      <div v-if="current" style="margin-bottom: 12px; color: #909399">
+        租户：{{ current.company_name }}（{{ current.code }}）
+      </div>
+      <div class="config-list">
+        <div v-for="(item, idx) in quickForm.storefront_quick_entries" :key="`quick-entry-${idx}`" class="config-card">
+          <div class="config-card__head">
+            <strong>入口 {{ idx + 1 }}</strong>
+            <el-button text type="danger" @click="removeQuickEntry(idx)">删除</el-button>
+          </div>
+          <el-form label-width="90px">
+            <el-form-item label="标题">
+              <el-input v-model="item.title" />
+            </el-form-item>
+            <el-form-item label="副标题">
+              <el-input v-model="item.subtitle" />
+            </el-form-item>
+            <el-form-item label="跳转页面">
+              <el-select v-model="item.path" style="width: 100%">
+                <el-option v-for="pathOption in storefrontPathOptions" :key="pathOption.value" :label="pathOption.label" :value="pathOption.value" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="addQuickEntry">新增快捷入口</el-button>
+        <el-button @click="quickDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitQuickEntries">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -126,12 +159,15 @@
 import { listFeatures, listPlans, type Plan, type PlanFeature } from '@/api/plans'
 import {
     auditTenant,
+    getTenantQuickEntries,
     listTenants,
+    updateTenantQuickEntries,
     updateTenantFeatures,
     updateTenantPlan,
     updateTenantStatus,
     type TenantRow,
 } from '@/api/platform'
+import type { StorefrontQuickEntry } from '@/api/site'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 
@@ -151,6 +187,8 @@ const planDialog = ref(false)
 const planForm = reactive<{ plan_id?: number; plan_expire_at?: string }>({})
 const featDialog = ref(false)
 const featForm = reactive<{ extra_features: string[] }>({ extra_features: [] })
+const quickDialog = ref(false)
+const quickForm = reactive<{ storefront_quick_entries: StorefrontQuickEntry[] }>({ storefront_quick_entries: [] })
 
 const planMap = computed(() => {
   const m = new Map<number, string>()
@@ -171,6 +209,21 @@ const featOptions = computed(() => {
     .filter((f) => f.status === 1 && !own.has(f.code))
     .map((f) => ({ key: f.code, label: `${f.name}（${f.code}）` }))
 })
+
+const storefrontPathOptions = [
+  { label: '首页', value: '/' },
+  { label: '全部商品', value: '/catalog' },
+  { label: '热卖商品页', value: '/catalog?source=hot' },
+  { label: '领券中心', value: '/coupons' },
+  { label: '购物车', value: '/cart' },
+  { label: '订单列表', value: '/orders' },
+  { label: '会员中心', value: '/profile' },
+  { label: '登录页', value: '/login' },
+]
+
+function newQuickEntry(): StorefrontQuickEntry {
+  return { title: '', subtitle: '', path: '/catalog' }
+}
 
 async function load() {
   loading.value = true
@@ -282,6 +335,31 @@ async function submitFeatures() {
   load()
 }
 
+async function openQuickEntries(row: TenantRow) {
+  current.value = row
+  const data = await getTenantQuickEntries(row.id)
+  quickForm.storefront_quick_entries = (data.storefront_quick_entries || []).map((item) => ({ ...item }))
+  quickDialog.value = true
+}
+
+function addQuickEntry() {
+  quickForm.storefront_quick_entries.push(newQuickEntry())
+}
+
+function removeQuickEntry(index: number) {
+  quickForm.storefront_quick_entries.splice(index, 1)
+}
+
+async function submitQuickEntries() {
+  if (!current.value) return
+  await updateTenantQuickEntries(
+    current.value.id,
+    quickForm.storefront_quick_entries.filter((item) => item.title.trim()),
+  )
+  ElMessage.success('快捷入口已更新')
+  quickDialog.value = false
+}
+
 onMounted(() => {
   loadMeta()
   load()
@@ -292,4 +370,17 @@ onMounted(() => {
 .toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
 .pager { margin-top: 12px; justify-content: flex-end; display: flex; }
 .expired { color: #f56c6c; }
+.config-list { display: grid; gap: 16px; }
+.config-card {
+  padding: 16px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  background: var(--el-fill-color-blank);
+}
+.config-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
 </style>

@@ -7,6 +7,15 @@
           <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
         <el-button type="primary" @click="load">查询</el-button>
+        <el-button @click="downloadTemplate">下载导入模板</el-button>
+        <el-upload
+          :show-file-list="false"
+          :auto-upload="true"
+          accept=".csv,text/csv"
+          :http-request="handleImportUpload"
+        >
+          <el-button type="warning" :loading="importing">批量导入</el-button>
+        </el-upload>
         <el-button type="success" @click="openEdit()">新建商品</el-button>
       </div>
 
@@ -82,6 +91,12 @@
         <el-form-item label="商品图">
           <ImageUploader v-model="productImages" multiple :max="9" folder="products" />
         </el-form-item>
+        <el-form-item label="视频地址">
+          <el-input v-model="editing.video_url" placeholder="选填，商品介绍视频 URL" />
+        </el-form-item>
+        <el-form-item label="商品详情">
+          <el-input v-model="editing.description" type="textarea" :rows="5" maxlength="5000" show-word-limit />
+        </el-form-item>
         <el-form-item label="价格">
           <el-input v-model="editing.price" />
         </el-form-item>
@@ -89,8 +104,30 @@
           <el-switch v-model="editing._virtual" />
           <span class="hint">虚拟商品无需发货，支付后订单自动完成</span>
         </el-form-item>
+        <el-form-item v-if="!editing._virtual" label="配送方式">
+          <el-checkbox-group v-model="deliveryTypes">
+            <el-checkbox label="express">快递配送</el-checkbox>
+            <el-checkbox label="city">同城配送</el-checkbox>
+            <el-checkbox label="self_pickup">到店自提</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item v-if="!editing._virtual" label="运费">
+          <el-input v-model="editing.delivery_fee" placeholder="如 0.00" />
+        </el-form-item>
         <el-form-item label="库存">
           <el-input-number v-model="editing.stock" :min="0" :disabled="editing._virtual" />
+        </el-form-item>
+        <el-form-item v-if="!editing._virtual" label="预警库存">
+          <el-input-number v-model="editing.stock_warning" :min="0" />
+        </el-form-item>
+        <el-form-item label="首页推荐">
+          <el-switch v-model="editing._recommend" />
+        </el-form-item>
+        <el-form-item label="热门商品">
+          <el-switch v-model="editing._hot" />
+        </el-form-item>
+        <el-form-item label="排序值">
+          <el-input-number v-model="editing.sort" :min="0" />
         </el-form-item>
         <el-form-item label="上架">
           <el-switch v-model="editing._active" />
@@ -108,15 +145,17 @@
 import {
     createProduct,
     deleteProduct,
+    downloadProductImportTemplate,
     listCategories,
     listProducts,
     updateProduct,
     updateProductStatus,
+    uploadProductImport,
     type Category,
     type Product,
 } from '@/api/product'
 import ImageUploader from '@/components/ImageUploader.vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox, type UploadRequestOptions } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 const rows = ref<Product[]>([])
@@ -130,7 +169,25 @@ const categories = ref<Category[]>([])
 
 const dialogVisible = ref(false)
 const saving = ref(false)
-const editing = reactive<Partial<Product> & { _active: boolean; _virtual: boolean }>({ _active: true, _virtual: false, stock: 0, price: '0.00', images: [] })
+const importing = ref(false)
+const editing = reactive<Partial<Product> & {
+  _active: boolean
+  _virtual: boolean
+  _recommend: boolean
+  _hot: boolean
+}>({
+  _active: true,
+  _virtual: false,
+  _recommend: false,
+  _hot: false,
+  stock: 0,
+  stock_warning: 10,
+  price: '0.00',
+  delivery_fee: '0.00',
+  images: [],
+  delivery_type: ['express'],
+  sort: 0,
+})
 
 const coverImage = computed({
   get: () => editing.cover_image || '',
@@ -139,6 +196,10 @@ const coverImage = computed({
 const productImages = computed<string[]>({
   get: () => (editing.images as string[]) || [],
   set: (v: string[]) => { editing.images = v },
+})
+const deliveryTypes = computed<string[]>({
+  get: () => editing._virtual ? [] : ((editing.delivery_type as string[]) || ['express']),
+  set: (v: string[]) => { editing.delivery_type = v },
 })
 
 async function load() {
@@ -165,12 +226,70 @@ async function loadCategories() {
   }
 }
 
+async function downloadTemplate() {
+  const blob = await downloadProductImportTemplate()
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'product-import-template.csv'
+  link.click()
+  window.URL.revokeObjectURL(url)
+}
+
+async function handleImportUpload(opt: UploadRequestOptions) {
+  importing.value = true
+  try {
+    const result = await uploadProductImport(opt.file as File)
+    if (result.errors?.length) {
+      const lines = result.errors.slice(0, 20).map((item) => `第 ${item.row} 行：${item.message}`)
+      await ElMessageBox.alert(
+        `成功导入 ${result.imported} 条商品。<br/><br/>${lines.join('<br/>')}${result.errors.length > 20 ? '<br/>…其余错误请分批修正后重试。' : ''}`,
+        '导入结果',
+        { dangerouslyUseHTMLString: true },
+      )
+    } else {
+      ElMessage.success(`成功导入 ${result.imported} 条商品`)
+    }
+    load()
+  } finally {
+    importing.value = false
+  }
+}
+
 function openEdit(row?: Product) {
   Object.keys(editing).forEach((k) => delete (editing as any)[k])
   if (row) {
-    Object.assign(editing, row, { _active: row.status === 1, _virtual: row.is_virtual === 1 })
+    Object.assign(editing, row, {
+      delivery_type: row.delivery_type?.length ? row.delivery_type : ['express'],
+      delivery_fee: row.delivery_fee || '0.00',
+      stock_warning: row.stock_warning ?? 10,
+      video_url: row.video_url || '',
+      sort: row.sort ?? 0,
+      _active: row.status === 1,
+      _virtual: row.is_virtual === 1,
+      _recommend: row.is_recommend === 1,
+      _hot: row.is_hot === 1,
+    })
   } else {
-    Object.assign(editing, { name: '', subtitle: '', category_id: undefined, cover_image: '', price: '0.00', stock: 0, images: [], _active: true, _virtual: false })
+    Object.assign(editing, {
+      name: '',
+      subtitle: '',
+      category_id: undefined,
+      cover_image: '',
+      images: [],
+      video_url: '',
+      description: '',
+      price: '0.00',
+      stock: 0,
+      stock_warning: 10,
+      delivery_type: ['express'],
+      delivery_fee: '0.00',
+      sort: 0,
+      _active: true,
+      _virtual: false,
+      _recommend: false,
+      _hot: false,
+    })
   }
   dialogVisible.value = true
 }
@@ -178,6 +297,10 @@ function openEdit(row?: Product) {
 async function save() {
   if (!editing.name) {
     ElMessage.warning('请填写名称')
+    return
+  }
+  if (!editing._virtual && !deliveryTypes.value.length) {
+    ElMessage.warning('请至少选择一种配送方式')
     return
   }
   saving.value = true
@@ -188,11 +311,18 @@ async function save() {
       category_id: editing.category_id || null,
       cover_image: editing.cover_image || '',
       images: editing.images || [],
+      video_url: editing.video_url || '',
+      description: editing.description || '',
       price: editing.price,
       stock: editing._virtual ? 0 : editing.stock,
+      stock_warning: editing._virtual ? 0 : (editing.stock_warning ?? 10),
       status: editing._active ? 1 : 0,
       is_virtual: editing._virtual ? 1 : 0,
-      delivery_type: editing._virtual ? [] : ['express'],
+      delivery_type: editing._virtual ? [] : deliveryTypes.value,
+      delivery_fee: editing._virtual ? '0.00' : (editing.delivery_fee || '0.00'),
+      is_recommend: editing._recommend ? 1 : 0,
+      is_hot: editing._hot ? 1 : 0,
+      sort: editing.sort ?? 0,
     }
     if (editing.id) {
       await updateProduct(editing.id, payload)

@@ -1,4 +1,5 @@
 import request from './request';
+import type { StorefrontQuickEntry } from './site';
 
 export function getDashboard() {
   return request.get<any, { tenants_total: number; revenue_total: number }>('/platform/dashboard')
@@ -45,4 +46,14 @@ export function updateTenantPlan(id: number, planID: number, planExpireAt?: stri
 // 平台为租户单独授予/撤销附加功能
 export function updateTenantFeatures(id: number, extraFeatures: string[]) {
   return request.patch(`/platform/tenants/${id}/features`, { extra_features: extraFeatures })
+}
+
+export function getTenantQuickEntries(id: number) {
+  return request.get<any, { storefront_quick_entries: StorefrontQuickEntry[] }>(`/platform/tenants/${id}/storefront/quick-entries`)
+}
+
+export function updateTenantQuickEntries(id: number, storefrontQuickEntries: StorefrontQuickEntry[]) {
+  return request.put<any, { storefront_quick_entries: StorefrontQuickEntry[] }>(`/platform/tenants/${id}/storefront/quick-entries`, {
+    storefront_quick_entries: storefrontQuickEntries,
+  })
 }

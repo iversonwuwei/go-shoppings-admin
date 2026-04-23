@@ -89,6 +89,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '商品分类', role: 'platform', icon: 'Menu' },
       },
       {
+        path: 'admin/categories',
+        name: 'AdminCategories',
+        component: () => import('@/views/admin/categories.vue'),
+        meta: { title: '商品分类', role: 'tenant', icon: 'Menu' },
+      },
+      {
         path: 'admin/products',
         name: 'AdminProducts',
         component: () => import('@/views/admin/products.vue'),
@@ -99,6 +105,12 @@ const routes: RouteRecordRaw[] = [
         name: 'AdminOrders',
         component: () => import('@/views/admin/orders.vue'),
         meta: { title: '订单列表', role: 'tenant', icon: 'Tickets' },
+      },
+      {
+        path: 'admin/order-messages',
+        name: 'AdminOrderMessages',
+        component: () => import('@/views/admin/order-messages.vue'),
+        meta: { title: '订单消息', role: 'tenant', icon: 'Message' },
       },
       {
         path: 'admin/member/levels',
@@ -146,7 +158,7 @@ const routes: RouteRecordRaw[] = [
         path: 'admin/site',
         name: 'AdminSite',
         component: () => import('@/views/admin/site.vue'),
-        meta: { title: '站点品牌', role: 'tenant', icon: 'Brush' },
+        meta: { title: '商城装修', role: 'tenant', icon: 'Brush' },
       },
       {
         path: 'admin/settings/payment',

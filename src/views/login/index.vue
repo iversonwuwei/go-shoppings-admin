@@ -56,7 +56,8 @@
         <el-link type="success" :underline="false" @click="openApply">申请入驻</el-link>
         <span class="hint-tip">
           <span v-if="role === 'platform'">默认平台账号: admin / admin123</span>
-          <span v-else>请使用申请入驻时设置的「租户编号」登录</span>
+          <span v-else-if="isDev">本地演示租户: smoketest22 / smokeadmin22 / admin123</span>
+          <span v-else>请使用申请入驻时设置的租户编号、管理员账号和密码登录</span>
         </span>
       </div>
     </el-card>
@@ -188,12 +189,19 @@ import {
 import { listPublicPlans, type Plan } from '@/api/plans'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
 const user = useUserStore()
+const isDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+const demoTenant = {
+  tenantCode: 'smoketest22',
+  username: 'smokeadmin22',
+  password: 'admin123',
+  phone: '13900000001',
+}
 
 const role = ref<'platform' | 'tenant'>('platform')
 const mode = ref<'password' | 'sms'>('password')
@@ -208,6 +216,23 @@ const smsCountdown = ref(0)
 const forgotCountdown = ref(0)
 const forgotDialog = ref(false)
 const forgotForm = reactive({ phone: '', code: '', newPassword: '', confirm: '', tenantCode: '' })
+
+watch(role, (next) => {
+  if (!isDev) return
+  if (next === 'platform') {
+    pwdForm.username = 'admin'
+    pwdForm.password = 'admin123'
+    pwdForm.tenantCode = ''
+    return
+  }
+  pwdForm.username = demoTenant.username
+  pwdForm.password = demoTenant.password
+  pwdForm.tenantCode = demoTenant.tenantCode
+  smsForm.phone = smsForm.phone || demoTenant.phone
+  smsForm.tenantCode = demoTenant.tenantCode
+  forgotForm.phone = forgotForm.phone || demoTenant.phone
+  forgotForm.tenantCode = demoTenant.tenantCode
+})
 
 // 申请入驻
 const applyDialog = ref(false)
