@@ -4,6 +4,7 @@
   - multiple 开启多图
   - folder 指定后端保存子目录分类（products/logo/banner/avatar/...）
   - max 限制张数（multiple 模式下）
+  - usage 指定图片用途，用于尺寸校验和上传前压缩
 -->
 <template>
   <div class="image-uploader">
@@ -31,15 +32,124 @@
         </div>
       </el-upload>
     </div>
-    <div class="hint">支持 jpg / png / gif / webp，最大 10MB{{ multiple ? `，最多 ${max} 张` : '' }}</div>
+    <div class="hint">{{ uploadHint }}</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { uploadImage } from '@/api/upload';
-import { Delete, Loading, Plus, View } from '@element-plus/icons-vue';
-import { ElMessage, type UploadRequestOptions } from 'element-plus';
-import { computed, ref } from 'vue';
+import { uploadImage } from '@/api/upload'
+import { Delete, Loading, Plus, View } from '@element-plus/icons-vue'
+import { ElMessage, type UploadRequestOptions } from 'element-plus'
+import { computed, ref } from 'vue'
+
+type ImageUsage =
+  | 'common'
+  | 'product-cover'
+  | 'product-gallery'
+  | 'category-cover'
+  | 'storefront-banner'
+  | 'brand-logo'
+  | 'platform-logo'
+
+interface ImageRule {
+  label: string
+  minWidth?: number
+  minHeight?: number
+  aspectRatio?: number
+  aspectTolerance?: number
+  compressMaxWidth: number
+  compressMaxHeight: number
+  quality: number
+  maxOutputBytes: number
+  outputType?: 'image/jpeg' | 'image/webp' | 'image/png'
+  preservePng?: boolean
+}
+
+interface LoadedImageSource {
+  source: CanvasImageSource
+  width: number
+  height: number
+  close: () => void
+}
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+const ACCEPTED_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp'])
+
+const usageRules: Record<ImageUsage, ImageRule> = {
+  common: {
+    label: '通用图片',
+    compressMaxWidth: 1600,
+    compressMaxHeight: 1600,
+    quality: 0.82,
+    maxOutputBytes: 1200 * 1024,
+    outputType: 'image/jpeg',
+  },
+  'product-cover': {
+    label: '商品封面',
+    minWidth: 600,
+    minHeight: 600,
+    compressMaxWidth: 1600,
+    compressMaxHeight: 1600,
+    quality: 0.82,
+    maxOutputBytes: 1200 * 1024,
+    outputType: 'image/jpeg',
+  },
+  'product-gallery': {
+    label: '商品图',
+    minWidth: 600,
+    minHeight: 600,
+    compressMaxWidth: 1600,
+    compressMaxHeight: 1600,
+    quality: 0.82,
+    maxOutputBytes: 1200 * 1024,
+    outputType: 'image/jpeg',
+  },
+  'category-cover': {
+    label: '分类图片',
+    minWidth: 240,
+    minHeight: 240,
+    aspectRatio: 1,
+    aspectTolerance: 0.25,
+    compressMaxWidth: 600,
+    compressMaxHeight: 600,
+    quality: 0.82,
+    maxOutputBytes: 360 * 1024,
+    outputType: 'image/jpeg',
+  },
+  'storefront-banner': {
+    label: '首页 Banner',
+    minWidth: 750,
+    minHeight: 330,
+    aspectRatio: 750 / 330,
+    aspectTolerance: 0.22,
+    compressMaxWidth: 1500,
+    compressMaxHeight: 660,
+    quality: 0.8,
+    maxOutputBytes: 800 * 1024,
+    outputType: 'image/jpeg',
+  },
+  'brand-logo': {
+    label: '品牌 Logo',
+    minWidth: 120,
+    minHeight: 40,
+    compressMaxWidth: 800,
+    compressMaxHeight: 400,
+    quality: 0.85,
+    maxOutputBytes: 400 * 1024,
+    preservePng: true,
+  },
+  'platform-logo': {
+    label: '平台 Logo',
+    minWidth: 120,
+    minHeight: 40,
+    compressMaxWidth: 800,
+    compressMaxHeight: 400,
+    quality: 0.85,
+    maxOutputBytes: 400 * 1024,
+    preservePng: true,
+  },
+}
 
 const props = withDefaults(
   defineProps<{
@@ -48,12 +158,15 @@ const props = withDefaults(
     folder?: string
     max?: number
     scope?: 'admin' | 'platform'
+    usage?: ImageUsage
   }>(),
-  { multiple: false, folder: 'common', max: 9 },
+  { multiple: false, folder: 'common', max: 9, usage: 'common' },
 )
 const emit = defineEmits<{ (e: 'update:modelValue', v: string | string[]): void }>()
 
 const uploading = ref(false)
+
+const activeRule = computed(() => usageRules[props.usage] || usageRules.common)
 
 const urlList = computed<string[]>(() => {
   if (props.multiple) return (props.modelValue as string[]) || []
@@ -66,13 +179,23 @@ const canAdd = computed(() => {
   return urlList.value.length < props.max
 })
 
+const uploadHint = computed(() => {
+  const rule = activeRule.value
+  const parts = ['支持 jpg / png / gif / webp', '最大 10MB']
+  if (props.multiple) parts.push(`最多 ${props.max} 张`)
+  if (rule.minWidth && rule.minHeight) parts.push(`${rule.label}不小于 ${rule.minWidth}×${rule.minHeight}px`)
+  if (rule.aspectRatio) parts.push(`比例约 ${formatAspectRatio(rule.aspectRatio)}`)
+  parts.push(`上传前压缩至 ${rule.compressMaxWidth}×${rule.compressMaxHeight}px 内`)
+  return parts.join('，')
+})
+
 function beforeUpload(file: File) {
-  if (file.size > 10 * 1024 * 1024) {
+  if (file.size > MAX_UPLOAD_BYTES) {
     ElMessage.warning('图片不能超过 10MB')
     return false
   }
-  if (!/^image\//.test(file.type)) {
-    ElMessage.warning('仅支持图片格式')
+  if (!isSupportedImage(file)) {
+    ElMessage.warning('仅支持 jpg / png / gif / webp 图片')
     return false
   }
   return true
@@ -81,16 +204,170 @@ function beforeUpload(file: File) {
 async function customUpload(opt: UploadRequestOptions) {
   uploading.value = true
   try {
-    const r = await uploadImage(opt.file as File, props.folder, props.scope)
+    const file = await prepareUploadFile(opt.file as File)
+    if (!file) return
+    const r = await uploadImage(file, props.folder, props.scope)
     if (props.multiple) {
       const next = [...urlList.value, r.url]
       emit('update:modelValue', next)
     } else {
       emit('update:modelValue', r.url)
     }
+  } catch (error: any) {
+    ElMessage.error(error?.message || '上传失败')
+    opt.onError?.(error)
   } finally {
     uploading.value = false
   }
+}
+
+async function prepareUploadFile(file: File) {
+  const rule = activeRule.value
+  const image = await loadImageSource(file)
+  try {
+    if (!validateDimensions(image, rule)) return null
+    return await compressImage(file, image, rule)
+  } finally {
+    image.close()
+  }
+}
+
+function validateDimensions(image: LoadedImageSource, rule: ImageRule) {
+  if (rule.minWidth && image.width < rule.minWidth) {
+    ElMessage.warning(`${rule.label}宽度不能小于 ${rule.minWidth}px，当前 ${image.width}px`)
+    return false
+  }
+  if (rule.minHeight && image.height < rule.minHeight) {
+    ElMessage.warning(`${rule.label}高度不能小于 ${rule.minHeight}px，当前 ${image.height}px`)
+    return false
+  }
+  if (rule.aspectRatio) {
+    const tolerance = rule.aspectTolerance ?? 0.15
+    const ratio = image.width / image.height
+    const minRatio = rule.aspectRatio * (1 - tolerance)
+    const maxRatio = rule.aspectRatio * (1 + tolerance)
+    if (ratio < minRatio || ratio > maxRatio) {
+      ElMessage.warning(`${rule.label}比例应接近 ${formatAspectRatio(rule.aspectRatio)}，当前 ${image.width}×${image.height}px`)
+      return false
+    }
+  }
+  return true
+}
+
+async function compressImage(file: File, image: LoadedImageSource, rule: ImageRule) {
+  const mime = getImageMime(file)
+  if (mime === 'image/gif') return file
+
+  const scale = Math.min(1, rule.compressMaxWidth / image.width, rule.compressMaxHeight / image.height)
+  const targetWidth = Math.max(1, Math.round(image.width * scale))
+  const targetHeight = Math.max(1, Math.round(image.height * scale))
+  const outputType = resolveOutputType(file, rule)
+  const shouldTryCompress = scale < 1 || file.size > rule.maxOutputBytes || outputType !== mime
+  if (!shouldTryCompress) return file
+
+  const canvas = document.createElement('canvas')
+  canvas.width = targetWidth
+  canvas.height = targetHeight
+  const context = canvas.getContext('2d')
+  if (!context) return file
+
+  context.drawImage(image.source, 0, 0, targetWidth, targetHeight)
+
+  let quality = rule.quality
+  let blob = await canvasToBlob(canvas, outputType, quality)
+  while (outputType !== 'image/png' && blob.size > rule.maxOutputBytes && quality > 0.62) {
+    quality = Math.max(0.62, quality - 0.08)
+    blob = await canvasToBlob(canvas, outputType, quality)
+  }
+
+  if (scale === 1 && blob.size >= file.size) return file
+
+  return new File([blob], replaceFileExt(file.name, extensionFromMime(outputType)), {
+    type: outputType,
+    lastModified: Date.now(),
+  })
+}
+
+function loadImageSource(file: File): Promise<LoadedImageSource> {
+  if ('createImageBitmap' in window) {
+    return createImageBitmap(file).then((bitmap) => ({
+      source: bitmap,
+      width: bitmap.width,
+      height: bitmap.height,
+      close: () => bitmap.close(),
+    }))
+  }
+
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const image = new Image()
+    image.onload = () => {
+      resolve({
+        source: image,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        close: () => URL.revokeObjectURL(url),
+      })
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('图片读取失败，请更换图片后重试'))
+    }
+    image.src = url
+  })
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('图片压缩失败，请更换图片后重试'))
+    }, type, quality)
+  })
+}
+
+function isSupportedImage(file: File) {
+  const mime = getImageMime(file)
+  if (mime && ACCEPTED_TYPES.has(mime)) return true
+  return ACCEPTED_EXTS.has(getFileExt(file.name))
+}
+
+function getImageMime(file: File) {
+  const type = file.type.toLowerCase()
+  if (type) return type
+  const ext = getFileExt(file.name)
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg'
+  if (ext === 'png') return 'image/png'
+  if (ext === 'gif') return 'image/gif'
+  if (ext === 'webp') return 'image/webp'
+  return ''
+}
+
+function resolveOutputType(file: File, rule: ImageRule) {
+  const mime = getImageMime(file)
+  if (mime === 'image/png' && rule.preservePng) return 'image/png'
+  if (mime === 'image/webp') return 'image/webp'
+  return rule.outputType || 'image/jpeg'
+}
+
+function getFileExt(name: string) {
+  return (name.split('.').pop() || '').toLowerCase()
+}
+
+function replaceFileExt(name: string, ext: string) {
+  const base = name.replace(/\.[^.]+$/, '') || 'image'
+  return `${base}.${ext}`
+}
+
+function extensionFromMime(mime: string) {
+  if (mime === 'image/png') return 'png'
+  if (mime === 'image/webp') return 'webp'
+  return 'jpg'
+}
+
+function formatAspectRatio(ratio: number) {
+  if (Math.abs(ratio - 1) < 0.01) return '1:1'
+  return `${Number(ratio.toFixed(2))}:1`
 }
 
 function remove(i: number) {

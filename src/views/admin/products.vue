@@ -86,10 +86,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="封面图">
-          <ImageUploader v-model="coverImage" folder="products" />
+          <ImageUploader v-model="coverImage" folder="products" usage="product-cover" />
         </el-form-item>
         <el-form-item label="商品图">
-          <ImageUploader v-model="productImages" multiple :max="9" folder="products" />
+          <ImageUploader v-model="productImages" multiple :max="9" folder="products" usage="product-gallery" />
         </el-form-item>
         <el-form-item label="视频地址">
           <el-input v-model="editing.video_url" placeholder="选填，商品介绍视频 URL" />
@@ -115,10 +115,7 @@
           <el-input v-model="editing.delivery_fee" placeholder="如 0.00" />
         </el-form-item>
         <el-form-item label="库存">
-          <el-input-number v-model="editing.stock" :min="0" :disabled="editing._virtual" />
-        </el-form-item>
-        <el-form-item v-if="!editing._virtual" label="预警库存">
-          <el-input-number v-model="editing.stock_warning" :min="0" />
+          <el-alert type="info" :closable="false" title="商品保存后，请到“库存管理”统一入库、出库和设置预警库存。" />
         </el-form-item>
         <el-form-item label="首页推荐">
           <el-switch v-model="editing._recommend" />
@@ -180,8 +177,6 @@ const editing = reactive<Partial<Product> & {
   _virtual: false,
   _recommend: false,
   _hot: false,
-  stock: 0,
-  stock_warning: 10,
   price: '0.00',
   delivery_fee: '0.00',
   images: [],
@@ -262,7 +257,6 @@ function openEdit(row?: Product) {
     Object.assign(editing, row, {
       delivery_type: row.delivery_type?.length ? row.delivery_type : ['express'],
       delivery_fee: row.delivery_fee || '0.00',
-      stock_warning: row.stock_warning ?? 10,
       video_url: row.video_url || '',
       sort: row.sort ?? 0,
       _active: row.status === 1,
@@ -280,8 +274,6 @@ function openEdit(row?: Product) {
       video_url: '',
       description: '',
       price: '0.00',
-      stock: 0,
-      stock_warning: 10,
       delivery_type: ['express'],
       delivery_fee: '0.00',
       sort: 0,
@@ -314,8 +306,6 @@ async function save() {
       video_url: editing.video_url || '',
       description: editing.description || '',
       price: editing.price,
-      stock: editing._virtual ? 0 : editing.stock,
-      stock_warning: editing._virtual ? 0 : (editing.stock_warning ?? 10),
       status: editing._active ? 1 : 0,
       is_virtual: editing._virtual ? 1 : 0,
       delivery_type: editing._virtual ? [] : deliveryTypes.value,
@@ -329,7 +319,7 @@ async function save() {
       ElMessage.success('已更新')
     } else {
       await createProduct(payload)
-      ElMessage.success('已创建')
+      ElMessage.success('已创建，请到库存管理维护库存')
     }
     dialogVisible.value = false
     load()

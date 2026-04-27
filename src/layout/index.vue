@@ -64,6 +64,7 @@ const allMenus = [
   { path: '/platform/categories', title: '商品分类', icon: Menu, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/admin/categories', title: '商品分类', icon: Menu, role: 'tenant' },
   { path: '/admin/products', title: '商品管理', icon: Goods, role: 'tenant' },
+  { path: '/admin/inventory', title: '库存管理', icon: Box, role: 'tenant' },
   { path: '/admin/orders', title: '订单列表', icon: Tickets, role: 'tenant' },
   { path: '/admin/order-messages', title: '订单消息', icon: Message, role: 'tenant' },
   { path: '/admin/member/levels', title: '会员等级', icon: Medal, role: 'tenant' },

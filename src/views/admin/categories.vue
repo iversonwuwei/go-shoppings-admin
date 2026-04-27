@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import ImageUploader from '@/components/ImageUploader.vue'
 import { listCategories, updateTenantCategoryMedia, type Category } from '@/api/product'
+import ImageUploader from '@/components/ImageUploader.vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 
@@ -98,7 +98,7 @@ onMounted(load)
           <el-input :model-value="editing?.name || ''" disabled />
         </el-form-item>
         <el-form-item label="封面图">
-          <ImageUploader v-model="form.cover_image" folder="categories" />
+          <ImageUploader v-model="form.cover_image" folder="categories" usage="category-cover" />
         </el-form-item>
       </el-form>
       <template #footer>

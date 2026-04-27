@@ -101,6 +101,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '商品管理', role: 'tenant', icon: 'Goods' },
       },
       {
+        path: 'admin/inventory',
+        name: 'AdminInventory',
+        component: () => import('@/views/admin/inventory.vue'),
+        meta: { title: '库存管理', role: 'tenant', icon: 'Box' },
+      },
+      {
         path: 'admin/orders',
         name: 'AdminOrders',
         component: () => import('@/views/admin/orders.vue'),

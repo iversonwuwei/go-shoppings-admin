@@ -83,7 +83,7 @@
                 <el-input v-model="item.subtitle" />
               </el-form-item>
               <el-form-item label="图片">
-                <ImageUploader v-model="item.image" folder="storefront" />
+                <ImageUploader v-model="item.image" folder="storefront" usage="storefront-banner" />
               </el-form-item>
               <el-form-item label="跳转路径">
                 <el-select v-model="item.path" style="width: 100%">
@@ -252,7 +252,7 @@
             <el-input v-model="brandForm.brand_name" />
           </el-form-item>
           <el-form-item label="品牌 Logo">
-            <ImageUploader v-model="brandForm.brand_logo" folder="logo" />
+            <ImageUploader v-model="brandForm.brand_logo" folder="logo" usage="brand-logo" />
           </el-form-item>
           <el-form-item label="主色调">
             <el-color-picker v-model="brandForm.primary_color" show-alpha />
@@ -303,17 +303,17 @@
 
 <script setup lang="ts">
 import {
-  getSiteConfig,
-  updateSiteBrand,
-  updateSiteDeployment,
-  updateSiteDomain,
-  updateSiteStorefront,
-  type SiteConfig,
-  type StorefrontBanner,
-  type StorefrontMemberEntry,
-  type StorefrontPromoCard,
-  type StorefrontQuickEntry,
-  type StorefrontServiceCard,
+    getSiteConfig,
+    updateSiteBrand,
+    updateSiteDeployment,
+    updateSiteDomain,
+    updateSiteStorefront,
+    type SiteConfig,
+    type StorefrontBanner,
+    type StorefrontMemberEntry,
+    type StorefrontPromoCard,
+    type StorefrontQuickEntry,
+    type StorefrontServiceCard,
 } from '@/api/site'
 import ImageUploader from '@/components/ImageUploader.vue'
 import { ElMessage } from 'element-plus'
