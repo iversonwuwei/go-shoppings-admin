@@ -43,7 +43,7 @@ pnpm dev
 ## 默认账号
 
 - 平台：`admin` / `admin123`
-- 商户：`admin` / `admin123` + 租户 ID `1`（`TEST001`，种子数据内置）
+- 商户：租户编号 `TEST001`，账号 `smokeadmin22` / `admin123`（绑定种子数据内置租户 `测试商城`）
 
 ## 构建
 

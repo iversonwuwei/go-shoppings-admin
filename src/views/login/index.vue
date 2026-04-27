@@ -56,7 +56,7 @@
         <el-link type="success" :underline="false" @click="openApply">申请入驻</el-link>
         <span class="hint-tip">
           <span v-if="role === 'platform'">默认平台账号: admin / admin123</span>
-          <span v-else-if="isDev">本地演示租户: smoketest22 / smokeadmin22 / admin123</span>
+          <span v-else-if="isDev">本地演示租户: TEST001 / smokeadmin22 / admin123</span>
           <span v-else>请使用申请入驻时设置的租户编号、管理员账号和密码登录</span>
         </span>
       </div>
@@ -197,7 +197,7 @@ const route = useRoute()
 const user = useUserStore()
 const isDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 const demoTenant = {
-  tenantCode: 'smoketest22',
+  tenantCode: 'TEST001',
   username: 'smokeadmin22',
   password: 'admin123',
   phone: '13900000001',
@@ -267,7 +267,7 @@ function startCountdown(target: 'sms' | 'forgot' | 'apply') {
 // 按租户编号解析出内部 ID（简单内存缓存，避免重复调用）
 const tenantIdCache = new Map<string, number>()
 async function resolveTid(code: string): Promise<number | null> {
-  const key = (code || '').trim().toLowerCase()
+  const key = (code || '').trim()
   if (!key) {
     ElMessage.warning('请输入租户编号')
     return null
