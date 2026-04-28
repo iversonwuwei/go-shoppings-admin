@@ -98,7 +98,13 @@ onMounted(load)
           <el-input :model-value="editing?.name || ''" disabled />
         </el-form-item>
         <el-form-item label="封面图">
-          <ImageUploader v-model="form.cover_image" folder="categories" usage="category-cover" />
+          <ImageUploader
+            v-model="form.cover_image"
+            folder="categories"
+            usage="category-cover"
+            :ai-prompt-subject="editing?.name || ''"
+            :ai-prompt-context="editing?.parent_id ? `上级分类：${parentNameMap.get(editing.parent_id) || '未设置'}` : '顶级分类'"
+          />
         </el-form-item>
       </el-form>
       <template #footer>

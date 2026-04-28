@@ -31,14 +31,49 @@
           <div class="tip">{{ uploading ? '上传中' : '上传图片' }}</div>
         </div>
       </el-upload>
+      <div v-if="canAdd && aiEnabled" class="uploader-tile" @click="openAIDialog">
+        <div class="tile tile-ai">
+          <el-icon v-if="!aiGenerating" :size="28"><MagicStick /></el-icon>
+          <el-icon v-else class="is-loading" :size="28"><Loading /></el-icon>
+          <div class="tip">{{ aiGenerating ? '生成中' : 'AI生成' }}</div>
+        </div>
+      </div>
     </div>
     <div class="hint">{{ uploadHint }}</div>
+
+    <el-dialog v-model="aiDialogVisible" title="AI 生成图片" width="520px" append-to-body>
+      <el-form label-width="90px">
+        <el-form-item label="图片用途">
+          <el-input :model-value="activeRule.label" disabled />
+        </el-form-item>
+        <el-form-item v-if="aiPromptSubject" label="生成对象">
+          <el-input :model-value="aiPromptSubject" disabled />
+        </el-form-item>
+        <el-form-item label="生成尺寸">
+          <el-input :model-value="aiSizeText" disabled />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input
+            v-model="aiPrompt"
+            type="textarea"
+            :rows="5"
+            maxlength="1200"
+            show-word-limit
+            placeholder="描述画面主体、风格、颜色和使用场景"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="aiDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="aiGenerating" @click="submitAIImage">生成并使用</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { uploadImage } from '@/api/upload'
-import { Delete, Loading, Plus, View } from '@element-plus/icons-vue'
+import { generateAIImage, uploadImage } from '@/api/upload'
+import { Delete, Loading, MagicStick, Plus, View } from '@element-plus/icons-vue'
 import { ElMessage, type UploadRequestOptions } from 'element-plus'
 import { computed, ref } from 'vue'
 
@@ -159,14 +194,27 @@ const props = withDefaults(
     max?: number
     scope?: 'admin' | 'platform'
     usage?: ImageUsage
+    aiEnabled?: boolean
+    aiPromptSubject?: string
+    aiPromptContext?: string
+    aiDefaultPrompt?: string
   }>(),
-  { multiple: false, folder: 'common', max: 9, usage: 'common' },
+  { multiple: false, folder: 'common', max: 9, usage: 'common', aiEnabled: true },
 )
 const emit = defineEmits<{ (e: 'update:modelValue', v: string | string[]): void }>()
 
 const uploading = ref(false)
+const aiDialogVisible = ref(false)
+const aiGenerating = ref(false)
+const aiPrompt = ref('')
 
 const activeRule = computed(() => usageRules[props.usage] || usageRules.common)
+const aiEnabled = computed(() => props.aiEnabled)
+const aiPromptSubject = computed(() => (props.aiPromptSubject || '').trim())
+const aiWidth = computed(() => activeRule.value.compressMaxWidth)
+const aiHeight = computed(() => activeRule.value.compressMaxHeight)
+const aiAspectRatio = computed(() => formatAspectRatio(activeRule.value.aspectRatio || aiWidth.value / aiHeight.value))
+const aiSizeText = computed(() => `${aiWidth.value}×${aiHeight.value}px，比例 ${aiAspectRatio.value}`)
 
 const urlList = computed<string[]>(() => {
   if (props.multiple) return (props.modelValue as string[]) || []
@@ -207,17 +255,71 @@ async function customUpload(opt: UploadRequestOptions) {
     const file = await prepareUploadFile(opt.file as File)
     if (!file) return
     const r = await uploadImage(file, props.folder, props.scope)
-    if (props.multiple) {
-      const next = [...urlList.value, r.url]
-      emit('update:modelValue', next)
-    } else {
-      emit('update:modelValue', r.url)
-    }
+    appendImageURL(r.url)
   } catch (error: any) {
     ElMessage.error(error?.message || '上传失败')
     opt.onError?.(error)
   } finally {
     uploading.value = false
+  }
+}
+
+function appendImageURL(url: string) {
+  if (props.multiple) {
+    const next = [...urlList.value, url]
+    emit('update:modelValue', next)
+  } else {
+    emit('update:modelValue', url)
+  }
+}
+
+function openAIDialog() {
+  if (!canAdd.value || aiGenerating.value) return
+  aiPrompt.value = defaultAIPrompt()
+  aiDialogVisible.value = true
+}
+
+function defaultAIPrompt() {
+  const explicitPrompt = props.aiDefaultPrompt?.trim()
+  if (explicitPrompt) return explicitPrompt
+
+  const label = activeRule.value.label
+  const subject = aiPromptSubject.value
+  const quotedSubject = subject ? `“${subject}”` : label
+  const context = props.aiPromptContext?.trim()
+  const contextText = context ? `，${context}` : ''
+
+  if (props.usage === 'category-cover') return `${quotedSubject}分类封面图${contextText}，展示该分类代表性商品，商品陈列清晰，明亮干净，适合微信商城分类入口，不要文字、水印、二维码和边框`
+  if (props.usage === 'storefront-banner') return `${quotedSubject}首页 Banner${contextText}，电商促销横幅，主体突出，留出标题空间，明亮高级，不要文字、水印、二维码和边框`
+  if (props.usage === 'brand-logo' || props.usage === 'platform-logo') return `${quotedSubject}Logo${contextText}，简洁现代，品牌识别清晰，适合商城后台和小程序展示，不要复杂背景、水印、二维码和边框`
+  if (props.usage === 'product-cover') return `${quotedSubject}商品封面${contextText}，商业摄影风格，背景干净，产品主体突出，真实电商质感，不要文字、水印、二维码和边框`
+  if (props.usage === 'product-gallery') return `${quotedSubject}商品详情图${contextText}，多角度展示产品质感和使用场景，画面清晰，商业摄影风格，不要文字、水印、二维码和边框`
+  return `${quotedSubject}${contextText}，适合微信商城运营，画面清晰，商业质感，不要文字、水印、二维码和边框`
+}
+
+async function submitAIImage() {
+  const prompt = aiPrompt.value.trim()
+  if (!prompt) {
+    ElMessage.warning('请输入图片生成描述')
+    return
+  }
+  aiGenerating.value = true
+  try {
+    const result = await generateAIImage({
+      prompt,
+      usage: props.usage,
+      folder: props.folder,
+      width: aiWidth.value,
+      height: aiHeight.value,
+      aspect_ratio: aiAspectRatio.value,
+    }, props.scope)
+    appendImageURL(result.url)
+    aiDialogVisible.value = false
+    ElMessage.success('AI 图片已生成')
+  } catch (error: any) {
+    ElMessage.error(error?.message || 'AI 图片生成失败')
+  } finally {
+    aiGenerating.value = false
   }
 }
 
@@ -403,6 +505,8 @@ function preview(url: string) {
   color: #9ca3af; cursor: pointer;
 }
 .tile:hover { border-color: #409eff; color: #409eff; }
+.tile-ai { border-color: #b8d5ff; color: #409eff; background: #f5f9ff; }
+.tile-ai:hover { border-color: #2f7ff0; color: #2f7ff0; background: #ecf5ff; }
 .tip { margin-top: 4px; font-size: 12px; }
 .hint { margin-top: 8px; color: #9ca3af; font-size: 12px; }
 </style>

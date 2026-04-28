@@ -13,7 +13,7 @@
           <el-input v-model="form.platform_name" placeholder="如：WxMall SaaS" style="max-width: 420px" />
         </el-form-item>
         <el-form-item label="平台 Logo">
-          <ImageUploader v-model="form.platform_logo" folder="logo" scope="platform" usage="platform-logo" />
+          <ImageUploader v-model="form.platform_logo" folder="logo" scope="platform" usage="platform-logo" :ai-prompt-subject="form.platform_name || '平台'" />
         </el-form-item>
         <el-form-item label="客服电话">
           <el-input v-model="form.support_phone" style="max-width: 260px" />

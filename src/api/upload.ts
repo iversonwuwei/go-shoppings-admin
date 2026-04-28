@@ -7,6 +7,17 @@ export interface UploadResult {
   size: number
   ext: string
   name: string
+  model?: string
+  revised_prompt?: string
+}
+
+export interface GenerateAIImageBody {
+  prompt: string
+  usage?: string
+  folder?: string
+  width?: number
+  height?: number
+  aspect_ratio?: string
 }
 
 /**
@@ -28,8 +39,38 @@ export async function uploadImage(file: File, folder = 'common', scope?: 'admin'
       'Content-Type': 'multipart/form-data',
     },
     timeout: 60000,
+    validateStatus: () => true,
   })
   const body = resp.data
+  if (resp.status < 200 || resp.status >= 300) throw new Error(uploadErrorMessage(body, `上传失败(${resp.status})`))
   if (body && body.code === 0) return body.data as UploadResult
-  throw new Error(body?.message || '上传失败')
+  throw new Error(uploadErrorMessage(body, '上传失败'))
+}
+
+export async function generateAIImage(body: GenerateAIImageBody, scope?: 'admin' | 'platform'): Promise<UploadResult> {
+  const user = useUserStore()
+  const effective = scope || (user.role === 'platform' ? 'platform' : 'admin')
+  const resp = await axios.post(`/api/v1/${effective}/upload/ai-image`, body, {
+    headers: {
+      Authorization: user.token ? `Bearer ${user.token}` : '',
+      'X-Tenant-ID': user.tenantId ? String(user.tenantId) : '',
+    },
+    timeout: 180000,
+    validateStatus: () => true,
+  })
+  const result = resp.data
+  if (resp.status < 200 || resp.status >= 300) throw new Error(uploadErrorMessage(result, `AI 图片生成失败(${resp.status})`))
+  if (result && result.code === 0) return result.data as UploadResult
+  throw new Error(uploadErrorMessage(result, 'AI 图片生成失败'))
+}
+
+function uploadErrorMessage(body: any, fallback: string) {
+  const message = body?.message || body?.detail || body?.error
+  if (!message) return fallback
+  if (typeof message === 'string') return message
+  try {
+    return JSON.stringify(message)
+  } catch {
+    return fallback
+  }
 }

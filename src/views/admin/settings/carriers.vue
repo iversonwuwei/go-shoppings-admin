@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { listCarriersForTenant, queryTrack, type Carrier, type TrackResult } from '@/api/settings'
+import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -43,7 +44,7 @@ onMounted(load)
         </div>
       </template>
 
-      <el-table :data="list" stripe empty-text="暂无可用承运商，请联系平台管理员">
+      <el-table class="desktop-table" :data="list" stripe empty-text="暂无可用承运商，请联系平台管理员">
         <el-table-column prop="code" label="编码" width="120" />
         <el-table-column prop="name" label="名称" width="180" />
         <el-table-column prop="api_provider" label="对接方" width="140">
@@ -54,22 +55,49 @@ onMounted(load)
         <el-table-column prop="priority" label="优先级" width="100" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openTrack(row)">物流查询</el-button>
+            <el-button link type="primary" :icon="Search" @click="openTrack(row)">物流查询</el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="mobile-list">
+        <template v-if="list.length">
+          <div v-for="row in list" :key="row.id" class="carrier-row">
+            <div class="carrier-main">
+              <div class="carrier-title">{{ row.name }}</div>
+              <div class="carrier-code">{{ row.code }}</div>
+            </div>
+            <div class="carrier-meta">
+              <div>
+                <span class="meta-label">对接方</span>
+                <el-tag size="small" effect="plain">{{ row.api_provider || '未对接' }}</el-tag>
+              </div>
+              <div>
+                <span class="meta-label">优先级</span>
+                <span class="priority">{{ row.priority }}</span>
+              </div>
+            </div>
+            <el-button class="track-btn" type="primary" plain :icon="Search" @click="openTrack(row)">物流查询</el-button>
+          </div>
+        </template>
+        <el-empty v-else description="暂无可用承运商，请联系平台管理员" />
+      </div>
     </el-card>
 
-    <el-dialog v-model="trackVisible" :title="`物流轨迹 - ${trackForm.carrier_name}`" width="640px">
-      <el-form inline :model="trackForm">
+    <el-dialog
+      v-model="trackVisible"
+      :title="`物流轨迹 - ${trackForm.carrier_name}`"
+      class="track-dialog"
+    >
+      <el-form class="track-form" :model="trackForm">
         <el-form-item label="承运商">
-          <el-input v-model="trackForm.carrier_name" disabled style="width:160px" />
+          <el-input v-model="trackForm.carrier_name" disabled />
         </el-form-item>
         <el-form-item label="运单号">
-          <el-input v-model="trackForm.tracking_no" style="width:260px" @keyup.enter="doTrack" />
+          <el-input v-model="trackForm.tracking_no" @keyup.enter="doTrack" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :loading="tracking" @click="doTrack">查询</el-button>
+          <el-button type="primary" :icon="Search" :loading="tracking" @click="doTrack">查询</el-button>
         </el-form-item>
       </el-form>
       <el-divider v-if="trackResult" />
@@ -90,6 +118,29 @@ onMounted(load)
 </template>
 
 <style scoped>
-.hd { display:flex; justify-content:space-between; align-items:center; }
-.tip { color:#999; font-size:12px; }
+.hd { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.tip { color:#999; font-size:12px; line-height:1.5; text-align:right; }
+.mobile-list { display:none; }
+.track-form { display:grid; grid-template-columns:160px minmax(220px, 1fr) auto; gap:12px; align-items:flex-start; }
+.track-form :deep(.el-form-item) { margin:0; }
+.track-form :deep(.el-button) { width:100%; }
+
+@media (max-width: 720px) {
+  .hd { align-items:flex-start; flex-direction:column; }
+  .tip { text-align:left; }
+  .desktop-table { display:none; }
+  .mobile-list { display:block; }
+  .carrier-row { padding:14px 0; border-bottom:1px solid #ebeef5; }
+  .carrier-row:first-child { padding-top:0; }
+  .carrier-row:last-child { padding-bottom:0; border-bottom:none; }
+  .carrier-main { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .carrier-title { min-width:0; color:#303133; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .carrier-code { flex:none; color:#909399; font-size:12px; line-height:20px; }
+  .carrier-meta { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; color:#606266; font-size:13px; }
+  .meta-label { display:block; margin-bottom:4px; color:#909399; font-size:12px; }
+  .priority { color:#303133; font-weight:600; }
+  .track-btn { width:100%; margin-top:12px; }
+  .track-form { display:grid; grid-template-columns:1fr; gap:12px; }
+  .track-form :deep(.el-form-item__label) { line-height:20px; }
+}
 </style>

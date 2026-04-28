@@ -86,10 +86,24 @@
           </el-select>
         </el-form-item>
         <el-form-item label="封面图">
-          <ImageUploader v-model="coverImage" folder="products" usage="product-cover" />
+          <ImageUploader
+            v-model="coverImage"
+            folder="products"
+            usage="product-cover"
+            :ai-prompt-subject="productPromptSubject"
+            :ai-prompt-context="productPromptContext"
+          />
         </el-form-item>
         <el-form-item label="商品图">
-          <ImageUploader v-model="productImages" multiple :max="9" folder="products" usage="product-gallery" />
+          <ImageUploader
+            v-model="productImages"
+            multiple
+            :max="9"
+            folder="products"
+            usage="product-gallery"
+            :ai-prompt-subject="productPromptSubject"
+            :ai-prompt-context="productPromptContext"
+          />
         </el-form-item>
         <el-form-item label="视频地址">
           <el-input v-model="editing.video_url" placeholder="选填，商品介绍视频 URL" />
@@ -191,6 +205,14 @@ const coverImage = computed({
 const productImages = computed<string[]>({
   get: () => (editing.images as string[]) || [],
   set: (v: string[]) => { editing.images = v },
+})
+const selectedCategoryName = computed(() => categories.value.find((item) => item.id === editing.category_id)?.name || '')
+const productPromptSubject = computed(() => (editing.name || selectedCategoryName.value || '商品').trim())
+const productPromptContext = computed(() => {
+  const parts: string[] = []
+  if (selectedCategoryName.value) parts.push(`所属分类：${selectedCategoryName.value}`)
+  if (editing.subtitle) parts.push(`卖点：${editing.subtitle}`)
+  return parts.join('，')
 })
 const deliveryTypes = computed<string[]>({
   get: () => editing._virtual ? [] : ((editing.delivery_type as string[]) || ['express']),

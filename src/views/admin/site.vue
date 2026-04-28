@@ -83,7 +83,13 @@
                 <el-input v-model="item.subtitle" />
               </el-form-item>
               <el-form-item label="图片">
-                <ImageUploader v-model="item.image" folder="storefront" usage="storefront-banner" />
+                <ImageUploader
+                  v-model="item.image"
+                  folder="storefront"
+                  usage="storefront-banner"
+                  :ai-prompt-subject="bannerPromptSubject(item, idx)"
+                  :ai-prompt-context="bannerPromptContext(item)"
+                />
               </el-form-item>
               <el-form-item label="跳转路径">
                 <el-select v-model="item.path" style="width: 100%">
@@ -252,7 +258,7 @@
             <el-input v-model="brandForm.brand_name" />
           </el-form-item>
           <el-form-item label="品牌 Logo">
-            <ImageUploader v-model="brandForm.brand_logo" folder="logo" usage="brand-logo" />
+            <ImageUploader v-model="brandForm.brand_logo" folder="logo" usage="brand-logo" :ai-prompt-subject="brandForm.brand_name || '品牌'" />
           </el-form-item>
           <el-form-item label="主色调">
             <el-color-picker v-model="brandForm.primary_color" show-alpha />
@@ -440,6 +446,17 @@ function newPromoCard(): StorefrontPromoCard {
 
 function newMemberEntry(): StorefrontMemberEntry {
   return { title: '', subtitle: '', path: '/profile' }
+}
+
+function bannerPromptSubject(item: StorefrontBanner, index: number) {
+  return (item.title || storefrontForm.storefront_hero_title || `Banner ${index + 1}`).trim()
+}
+
+function bannerPromptContext(item: StorefrontBanner) {
+  const parts: string[] = []
+  if (item.subtitle) parts.push(`副标题：${item.subtitle}`)
+  if (storefrontForm.storefront_hero_subtitle) parts.push(`商城定位：${storefrontForm.storefront_hero_subtitle}`)
+  return parts.join('，')
 }
 
 function syncFromConfig() {
