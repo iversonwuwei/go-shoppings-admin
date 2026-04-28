@@ -46,7 +46,7 @@ const router = useRouter()
 const route = useRoute()
 const user = useUserStore()
 
-const iconMap: Record<string, any> = { DataBoard, OfficeBuilding, Goods, Tickets, Wallet, Van, PriceTag, Grid, Medal, Timer, Discount, Coin, Present, Share, Message, Key, Box, Brush, Link, Cpu }
+const iconMap: Record<string, any> = { DataBoard, OfficeBuilding, Goods, Tickets, Wallet, Van, PriceTag, Grid, User, Medal, Timer, Discount, Coin, Present, Share, Message, Key, Box, Brush, Link, Cpu }
 
 const allMenus = [
   { path: '/platform/dashboard', title: '平台概览', icon: DataBoard, role: 'platform' },
@@ -67,6 +67,7 @@ const allMenus = [
   { path: '/admin/inventory', title: '库存管理', icon: Box, role: 'tenant' },
   { path: '/admin/orders', title: '订单列表', icon: Tickets, role: 'tenant' },
   { path: '/admin/order-messages', title: '订单消息', icon: Message, role: 'tenant' },
+  { path: '/admin/members', title: '会员管理', icon: User, role: 'tenant' },
   { path: '/admin/member/levels', title: '会员等级', icon: Medal, role: 'tenant' },
   { path: '/admin/seckill', title: '限时秒杀', icon: Timer, role: 'tenant' },
   { path: '/admin/coupons', title: '优惠券', icon: Discount, role: 'tenant' },

@@ -119,6 +119,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '订单消息', role: 'tenant', icon: 'Message' },
       },
       {
+        path: 'admin/members',
+        name: 'AdminMembers',
+        component: () => import('@/views/admin/members.vue'),
+        meta: { title: '会员管理', role: 'tenant', icon: 'User' },
+      },
+      {
         path: 'admin/member/levels',
         name: 'AdminMemberLevels',
         component: () => import('@/views/admin/member-levels.vue'),

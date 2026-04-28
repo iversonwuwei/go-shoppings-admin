@@ -30,6 +30,10 @@ export function listOrders(params: { page?: number; size?: number; status?: stri
   return request.get<any, OrderListResp>('/admin/orders', { params })
 }
 
+export function prepareOrder(id: number) {
+  return request.post(`/admin/orders/${id}/prepare`)
+}
+
 export function shipOrder(id: number, company: string, no: string) {
   return request.post(`/admin/orders/${id}/ship`, { express_company: company, express_no: no })
 }

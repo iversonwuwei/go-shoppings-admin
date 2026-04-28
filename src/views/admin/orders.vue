@@ -26,9 +26,10 @@
         <el-table-column prop="receiver_name" label="收件人" width="100" />
         <el-table-column prop="receiver_phone" label="电话" width="140" />
         <el-table-column prop="created_at" label="下单时间" width="180" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.status === 'paid'" size="small" type="primary" @click="openShip(row)">发货</el-button>
+            <el-button v-if="row.status === 'paid'" size="small" type="primary" @click="doPrepare(row)">开始处理</el-button>
+            <el-button v-if="row.status === 'preparing'" size="small" type="primary" @click="openShip(row)">发货</el-button>
             <el-button size="small" @click="openLogs(row)">轨迹</el-button>
           </template>
         </el-table-column>
@@ -85,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { listOrderLogs, listOrders, shipOrder, type Order, type OrderLog } from '@/api/order'
+import { listOrderLogs, listOrders, prepareOrder, shipOrder, type Order, type OrderLog } from '@/api/order'
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -123,6 +124,7 @@ function actionText(value: string) {
   return {
     create: '买家下单',
     pay_success: '支付成功',
+    prepare: '卖家处理',
     cancel: '买家取消',
     ship: '卖家发货',
     confirm: '买家确认收货',
@@ -146,6 +148,12 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+async function doPrepare(row: Order) {
+  await prepareOrder(row.id)
+  ElMessage.success('订单已进入处理中')
+  load()
 }
 
 function openShip(row: Order) {

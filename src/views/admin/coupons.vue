@@ -224,11 +224,11 @@ onMounted(load)
           <el-input-number v-model="form.per_limit" :min="1" :max="99" />
         </el-form-item>
         <el-form-item label="领取时间段">
-          <el-date-picker v-model="form.receive_range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ss"
+          <el-date-picker v-model="form.receive_range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ssZ"
             range-separator="至" start-placeholder="开始" end-placeholder="结束" />
         </el-form-item>
         <el-form-item label="使用时间段">
-          <el-date-picker v-model="form.valid_range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ss"
+          <el-date-picker v-model="form.valid_range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ssZ"
             range-separator="至" start-placeholder="开始" end-placeholder="结束" />
           <span class="hint">若留空则使用“领取后有效天数”</span>
         </el-form-item>

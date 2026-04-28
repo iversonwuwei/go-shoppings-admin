@@ -190,7 +190,7 @@ onMounted(() => { load(); loadProducts() })
           <el-input v-model="form.name" placeholder="例：双11秒杀" maxlength="100" show-word-limit />
         </el-form-item>
         <el-form-item label="活动时间">
-          <el-date-picker v-model="form.range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ss"
+          <el-date-picker v-model="form.range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ssZ"
             range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" />
         </el-form-item>
         <el-form-item label="单用户限购">
