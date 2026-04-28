@@ -47,7 +47,9 @@
         </el-form>
         <el-table :data="templates" border size="small">
           <el-table-column prop="id" label="ID" width="70" />
-          <el-table-column prop="tenant_id" label="租户" width="90" />
+          <el-table-column label="租户" min-width="200">
+            <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
+          </el-table-column>
           <el-table-column prop="code" label="Code" width="140" />
           <el-table-column prop="name" label="名称" />
           <el-table-column prop="template_id" label="平台模板号" width="160" />
@@ -103,7 +105,9 @@
         </el-form>
         <el-table :data="logs" border size="small">
           <el-table-column prop="id" label="ID" width="70" />
-          <el-table-column prop="tenant_id" label="租户" width="80" />
+          <el-table-column label="租户" min-width="200">
+            <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
+          </el-table-column>
           <el-table-column prop="phone" label="手机号" width="140" />
           <el-table-column prop="code" label="Code" width="140" />
           <el-table-column prop="content" label="内容" />
@@ -141,10 +145,18 @@ import {
     type SmsSettings,
     type SmsTemplate,
 } from '@/api/sms'
+import type { TenantRow } from '@/api/platform'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { loadTenantLookup, tenantInfo } from '@/utils/adminLookups'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 const activeTab = ref('settings')
+const tenantLookup = ref(new Map<number, TenantRow>())
+
+function tenantCell(id: number) {
+  return tenantInfo(tenantLookup.value.get(Number(id || 0)), id)
+}
 
 const settings = reactive<SmsSettings>({
   enabled: 0,
@@ -174,6 +186,7 @@ const tplForm = reactive<Partial<SmsTemplate> & { id?: number }>({})
 
 async function loadTemplates() {
   templates.value = await listSmsTemplates(tplTenantId.value ? { tenant_id: tplTenantId.value } : {})
+  tenantLookup.value = await loadTenantLookup(templates.value.map((item) => item.tenant_id), tenantLookup.value)
 }
 function editTpl(row: SmsTemplate) {
   Object.assign(tplForm, row)
@@ -214,6 +227,7 @@ async function loadLogs() {
   })
   logs.value = r.list
   logTotal.value = r.total
+  tenantLookup.value = await loadTenantLookup(logs.value.map((item) => item.tenant_id), tenantLookup.value)
 }
 
 onMounted(() => {

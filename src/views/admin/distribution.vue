@@ -8,12 +8,54 @@ import {
     type CommissionLog,
     type DistributionSettings, type Distributor,
 } from '@/api/distribution'
+import { listMembers, type AdminMember } from '@/api/member'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { memberInfo, uniquePositiveIds } from '@/utils/adminLookups'
 import { ElMessage } from 'element-plus'
 import { onMounted, ref } from 'vue'
 
 const tab = ref('settings')
 const featureDisabled = ref(false)
 const featureMsg = ref('')
+const memberLookup = ref(new Map<number, AdminMember>())
+const distributorLookup = ref(new Map<number, Distributor>())
+
+function memberCell(id: number) {
+  return memberInfo(memberLookup.value.get(Number(id || 0)), id)
+}
+
+function distributorCell(id: number) {
+  const targetId = Number(id || 0)
+  if (!targetId) return { title: '-' }
+  const distributor = distributorLookup.value.get(targetId)
+  if (!distributor) return { title: `未找到分销员 #${targetId}` }
+  const member = memberCell(distributor.member_id)
+  return {
+    title: member.title,
+    subtitle: [`分销员 ID ${targetId}`, member.subtitle].filter(Boolean).join(' · '),
+  }
+}
+
+async function ensureMembers(ids: Array<number | null | undefined>) {
+  const missing = uniquePositiveIds(ids).filter((id) => !memberLookup.value.has(id))
+  if (!missing.length) return
+  const next = new Map(memberLookup.value)
+  await Promise.all(missing.map(async (id) => {
+    const resp = await listMembers({ page: 1, size: 5, keyword: String(id) })
+    const member = (resp.list || []).find((item) => item.id === id)
+    if (member) next.set(id, member)
+  }))
+  memberLookup.value = next
+}
+
+async function ensureDistributors(ids: Array<number | null | undefined>) {
+  const missing = uniquePositiveIds(ids).filter((id) => !distributorLookup.value.has(id))
+  if (!missing.length) return
+  const res = await listDistributors({ page: 1, size: 500 })
+  const next = new Map(distributorLookup.value)
+  for (const item of res.list || []) next.set(item.id, item)
+  distributorLookup.value = next
+}
 
 // ----- Settings -----
 const settings = ref<DistributionSettings>({
@@ -79,6 +121,10 @@ async function loadDistributors() {
     const res = await listDistributors(params)
     dList.value = res.list
     dTotal.value = res.total
+    const next = new Map(distributorLookup.value)
+    for (const item of res.list || []) next.set(item.id, item)
+    distributorLookup.value = next
+    await ensureMembers((res.list || []).flatMap((item) => [item.member_id, item.parent_id, item.grandparent_id]))
   } catch (e: any) {
     if (e?.code === 30004) { featureDisabled.value = true; featureMsg.value = e.message || '' }
     else ElMessage.error(e?.message || '加载失败')
@@ -110,6 +156,11 @@ async function loadCommissions() {
     const res = await listCommissions(params)
     cList.value = res.list
     cTotal.value = res.total
+    await ensureDistributors((res.list || []).map((item) => item.distributor_id))
+    const distributorMembers = (res.list || [])
+      .map((item) => distributorLookup.value.get(item.distributor_id)?.member_id)
+      .filter(Boolean) as number[]
+    await ensureMembers((res.list || []).flatMap((item) => [item.member_id, item.buyer_id, ...distributorMembers]))
   } catch (e: any) {
     if (e?.code === 30004) { featureDisabled.value = true; featureMsg.value = e.message || '' }
     else ElMessage.error(e?.message || '加载失败')
@@ -192,8 +243,12 @@ onMounted(loadSettings)
           </div>
           <el-table v-loading="dLoading" :data="dList" border stripe>
             <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="member_id" label="会员ID" width="100" />
-            <el-table-column prop="parent_id" label="上级" width="90" />
+            <el-table-column label="会员" min-width="180">
+              <template #default="{ row }"><RelatedInfo v-bind="memberCell(row.member_id)" /></template>
+            </el-table-column>
+            <el-table-column label="上级会员" min-width="180">
+              <template #default="{ row }"><RelatedInfo v-bind="memberCell(row.parent_id)" /></template>
+            </el-table-column>
             <el-table-column prop="invite_count" label="邀请数" width="90" />
             <el-table-column prop="total_commission" label="累计佣金" width="120" />
             <el-table-column prop="pending_commission" label="待结算" width="120" />
@@ -233,10 +288,16 @@ onMounted(loadSettings)
           </div>
           <el-table v-loading="cLoading" :data="cList" border stripe>
             <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="distributor_id" label="分销员" width="100" />
-            <el-table-column prop="member_id" label="会员" width="90" />
+            <el-table-column label="分销员" min-width="190">
+              <template #default="{ row }"><RelatedInfo v-bind="distributorCell(row.distributor_id)" /></template>
+            </el-table-column>
+            <el-table-column label="佣金会员" min-width="180">
+              <template #default="{ row }"><RelatedInfo v-bind="memberCell(row.member_id)" /></template>
+            </el-table-column>
             <el-table-column prop="order_no" label="订单号" width="200" />
-            <el-table-column prop="buyer_id" label="买家" width="90" />
+            <el-table-column label="买家" min-width="180">
+              <template #default="{ row }"><RelatedInfo v-bind="memberCell(row.buyer_id)" /></template>
+            </el-table-column>
             <el-table-column label="层级" width="80">
               <template #default="{ row }">
                 <el-tag size="small" :type="row.level === 1 ? 'primary' : 'info'">

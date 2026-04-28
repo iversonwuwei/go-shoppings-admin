@@ -12,7 +12,9 @@
       </div>
     </div>
     <el-table :data="rows" border size="small">
-      <el-table-column prop="tenant_id" label="租户ID" width="90" />
+      <el-table-column label="租户" min-width="220">
+        <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
+      </el-table-column>
       <el-table-column label="部署模式" width="120">
         <template #default="{ row }">
           <el-tag :type="row.deployment_mode === 'private' ? 'danger' : 'info'" size="small">
@@ -57,15 +59,24 @@
 </template>
 
 <script setup lang="ts">
+import type { TenantRow } from '@/api/platform'
 import { listDeployments, updateDeployment, type TenantSiteConfig } from '@/api/platformOps'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { loadTenantLookup, tenantInfo } from '@/utils/adminLookups'
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 const mode = ref('')
 const rows = ref<TenantSiteConfig[]>([])
+const tenantLookup = ref(new Map<number, TenantRow>())
+
+function tenantCell(id: number) {
+  return tenantInfo(tenantLookup.value.get(Number(id || 0)), id)
+}
 
 async function load() {
   rows.value = await listDeployments(mode.value ? { mode: mode.value } : {})
+  tenantLookup.value = await loadTenantLookup(rows.value.map((item) => item.tenant_id), tenantLookup.value)
 }
 
 const editDialog = ref(false)

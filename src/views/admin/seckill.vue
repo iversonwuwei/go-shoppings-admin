@@ -132,7 +132,7 @@ async function onDelete(row: SeckillActivity) {
 }
 
 function productName(pid: number): string {
-  return products.value.find(p => p.id === pid)?.name || `#${pid}`
+  return products.value.find(p => p.id === pid)?.name || `未找到商品 #${pid}`
 }
 
 function activityState(row: SeckillActivity): { text: string; type: 'success' | 'info' | 'warning' | 'danger' } {

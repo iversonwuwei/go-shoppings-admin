@@ -5,7 +5,9 @@
       <el-button @click="load">刷新</el-button>
     </div>
     <el-table :data="rows" border size="small">
-      <el-table-column prop="tenant_id" label="租户ID" width="90" />
+      <el-table-column label="租户" min-width="220">
+        <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
+      </el-table-column>
       <el-table-column prop="custom_domain" label="申请域名" width="260" />
       <el-table-column label="校验状态" width="110">
         <template #default="{ row }">
@@ -34,13 +36,23 @@
 </template>
 
 <script setup lang="ts">
+import type { TenantRow } from '@/api/platform'
 import { listDomains, rejectDomain, verifyDomain, type TenantSiteConfig } from '@/api/platformOps'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { loadTenantLookup, tenantInfo } from '@/utils/adminLookups'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, ref } from 'vue'
 
 const rows = ref<TenantSiteConfig[]>([])
+const tenantLookup = ref(new Map<number, TenantRow>())
+
+function tenantCell(id: number) {
+  return tenantInfo(tenantLookup.value.get(Number(id || 0)), id)
+}
+
 async function load() {
   rows.value = await listDomains()
+  tenantLookup.value = await loadTenantLookup(rows.value.map((item) => item.tenant_id), tenantLookup.value)
 }
 async function verify(row: TenantSiteConfig) {
   await ElMessageBox.confirm(

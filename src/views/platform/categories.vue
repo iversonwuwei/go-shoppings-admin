@@ -179,7 +179,7 @@ onMounted(load)
       <el-table-column label="父级" width="160">
         <template #default="{ row }">
           <span v-if="row.parent_id === 0" style="color:#909399">顶级</span>
-          <span v-else>{{ nameMap.get(row.parent_id) || `#${row.parent_id}` }}</span>
+          <span v-else>{{ nameMap.get(row.parent_id) || `未找到分类 #${row.parent_id}` }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="sort" label="排序" width="100" />

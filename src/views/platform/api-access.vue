@@ -14,7 +14,9 @@
         </el-form>
         <el-table :data="tokens" border size="small">
           <el-table-column prop="id" label="ID" width="70" />
-          <el-table-column prop="tenant_id" label="租户" width="80" />
+          <el-table-column label="租户" min-width="200">
+            <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
+          </el-table-column>
           <el-table-column prop="name" label="名称" width="160" />
           <el-table-column prop="app_key" label="AppKey" width="280" />
           <el-table-column prop="app_secret" label="AppSecret(已打码)" width="160" />
@@ -95,8 +97,12 @@
         </el-form>
         <el-table :data="logs" border size="small">
           <el-table-column prop="id" label="ID" width="80" />
-          <el-table-column prop="tenant_id" label="租户" width="80" />
-          <el-table-column prop="token_id" label="Token" width="80" />
+          <el-table-column label="租户" min-width="200">
+            <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
+          </el-table-column>
+          <el-table-column label="Token" min-width="200">
+            <template #default="{ row }"><RelatedInfo v-bind="tokenCell(row.token_id)" /></template>
+          </el-table-column>
           <el-table-column prop="method" label="方法" width="80" />
           <el-table-column prop="path" label="路径" />
           <el-table-column prop="status_code" label="Status" width="80" />
@@ -129,15 +135,31 @@ import {
     type ApiToken,
 } from '@/api/apiAccess'
 import { listTenants, type TenantRow } from '@/api/platform'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { loadTenantLookup, loadTokenLookup, tenantInfo, tokenInfo } from '@/utils/adminLookups'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
 const activeTab = ref('tokens')
 const tenantId = ref<number | undefined>(undefined)
 const tokens = ref<ApiToken[]>([])
+const tenantLookup = ref(new Map<number, TenantRow>())
+const tokenLookup = ref(new Map<number, ApiToken>())
+
+function tenantCell(id: number) {
+  return tenantInfo(tenantLookup.value.get(Number(id || 0)), id)
+}
+
+function tokenCell(id: number) {
+  return tokenInfo(tokenLookup.value.get(Number(id || 0)), id)
+}
 
 async function loadTokens() {
   tokens.value = await listApiTokens(tenantId.value ? { tenant_id: tenantId.value } : {})
+  const next = new Map(tokenLookup.value)
+  for (const token of tokens.value) next.set(token.id, token)
+  tokenLookup.value = next
+  tenantLookup.value = await loadTenantLookup(tokens.value.map((item) => item.tenant_id), tenantLookup.value)
 }
 
 // Create
@@ -210,6 +232,8 @@ async function loadLogs() {
   })
   logs.value = r.list
   logTotal.value = r.total
+  tenantLookup.value = await loadTenantLookup(logs.value.map((item) => item.tenant_id), tenantLookup.value)
+  tokenLookup.value = await loadTokenLookup(logs.value.map((item) => item.token_id), tokenLookup.value)
 }
 
 onMounted(() => {

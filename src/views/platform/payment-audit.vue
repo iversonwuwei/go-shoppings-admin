@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import type { TenantRow } from '@/api/platform'
 import { auditPayment, listPaymentAudit, type PaymentConfig } from '@/api/settings'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { loadTenantLookup, tenantInfo } from '@/utils/adminLookups'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, ref } from 'vue'
 
@@ -9,12 +12,18 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(20)
 const status = ref<number | undefined>(0)
+const tenantLookup = ref(new Map<number, TenantRow>())
+
+function tenantCell(id: number) {
+  return tenantInfo(tenantLookup.value.get(Number(id || 0)), id)
+}
 
 async function load() {
   loading.value = true
   try {
     const r = await listPaymentAudit({ page: page.value, size: size.value, status: status.value })
     list.value = r.list || []; total.value = r.total || 0
+    tenantLookup.value = await loadTenantLookup(list.value.map((item) => item.tenant_id), tenantLookup.value)
   } finally { loading.value = false }
 }
 
@@ -50,7 +59,9 @@ onMounted(load)
 
     <el-table :data="list" stripe>
       <el-table-column prop="id" label="ID" width="70" />
-      <el-table-column prop="tenant_id" label="租户ID" width="90" />
+      <el-table-column label="租户" min-width="220">
+        <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
+      </el-table-column>
       <el-table-column prop="provider" label="类型" width="100" />
       <el-table-column prop="mch_id" label="商户号" width="160" />
       <el-table-column prop="app_id" label="AppID" width="180" />

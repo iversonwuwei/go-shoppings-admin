@@ -7,6 +7,8 @@ import {
     type GrouponActivity,
 } from '@/api/groupon'
 import { listProducts, type Product } from '@/api/product'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { productInfo } from '@/utils/adminLookups'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -61,6 +63,10 @@ async function loadProducts() {
     const res: any = await listProducts({ page: 1, size: 200 })
     products.value = res?.list || res?.items || res || []
   } catch { /* ignore */ }
+}
+
+function productCell(id: number) {
+  return productInfo(products.value.find((product) => product.id === Number(id || 0)), id)
 }
 
 function openCreate() {
@@ -164,7 +170,9 @@ onMounted(() => { load(); loadProducts() })
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="活动名称" />
-        <el-table-column prop="product_id" label="商品ID" width="90" />
+        <el-table-column label="商品" min-width="200">
+          <template #default="{ row }"><RelatedInfo v-bind="productCell(row.product_id)" /></template>
+        </el-table-column>
         <el-table-column prop="group_price" label="拼团价" width="100" />
         <el-table-column prop="original_price" label="原价" width="100" />
         <el-table-column prop="require_num" label="成团人数" width="100" />

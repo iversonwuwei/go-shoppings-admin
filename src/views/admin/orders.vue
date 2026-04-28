@@ -15,7 +15,11 @@
 
       <el-table :data="rows" v-loading="loading" stripe>
         <el-table-column prop="order_no" label="订单号" min-width="180" />
-        <el-table-column prop="member_id" label="会员 ID" width="100" />
+        <el-table-column label="会员" min-width="180">
+          <template #default="{ row }">
+            <RelatedInfo v-bind="memberCell(row.member_id)" />
+          </template>
+        </el-table-column>
         <el-table-column prop="total_amount" label="总金额" width="100" />
         <el-table-column prop="actual_amount" label="实付" width="100" />
         <el-table-column prop="status" label="状态" width="110">
@@ -86,7 +90,10 @@
 </template>
 
 <script setup lang="ts">
+import { listMembers, type AdminMember } from '@/api/member'
 import { listOrderLogs, listOrders, prepareOrder, shipOrder, type Order, type OrderLog } from '@/api/order'
+import RelatedInfo from '@/components/RelatedInfo.vue'
+import { memberInfo, uniquePositiveIds } from '@/utils/adminLookups'
 import { ElMessage } from 'element-plus'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -96,6 +103,7 @@ const page = ref(1)
 const size = ref(20)
 const status = ref<string | undefined>()
 const loading = ref(false)
+const memberLookup = ref(new Map<number, AdminMember>())
 
 const shipVisible = ref(false)
 const shipping = ref(false)
@@ -131,9 +139,25 @@ function actionText(value: string) {
   }[value] || value
 }
 
+function memberCell(id: number) {
+  return memberInfo(memberLookup.value.get(Number(id || 0)), id)
+}
+
+async function ensureMembers(ids: Array<number | null | undefined>) {
+  const missing = uniquePositiveIds(ids).filter((id) => !memberLookup.value.has(id))
+  if (!missing.length) return
+  const next = new Map(memberLookup.value)
+  await Promise.all(missing.map(async (id) => {
+    const resp = await listMembers({ page: 1, size: 5, keyword: String(id) })
+    const member = (resp.list || []).find((item) => item.id === id)
+    if (member) next.set(id, member)
+  }))
+  memberLookup.value = next
+}
+
 function operatorText(type: string, id: number) {
   return {
-    member: `买家 #${id || '-'}`,
+    member: `买家 ${memberCell(id).title}`,
     admin: `卖家 #${id || '-'}`,
     system: '系统',
   }[type] || type
@@ -145,6 +169,7 @@ async function load() {
     const resp = await listOrders({ page: page.value, size: size.value, status: status.value })
     rows.value = resp.list
     total.value = resp.total
+    await ensureMembers(rows.value.map((row) => row.member_id))
   } finally {
     loading.value = false
   }
@@ -166,6 +191,7 @@ function openShip(row: Order) {
 async function openLogs(row: Order) {
   currentOrder.value = row
   logs.value = await listOrderLogs(row.id)
+  await ensureMembers(logs.value.filter((item) => item.operator_type === 'member').map((item) => item.operator_id))
   logsVisible.value = true
 }
 

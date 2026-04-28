@@ -196,7 +196,7 @@ const planMap = computed(() => {
   return m
 })
 function planName(id: number) {
-  return planMap.value.get(id) || `#${id}`
+  return planMap.value.get(id) || `未找到套餐 #${id}`
 }
 
 const featOptions = computed(() => {
