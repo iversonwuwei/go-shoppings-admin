@@ -6,6 +6,10 @@ export interface PaymentConfig {
   provider: string
   mch_id: string
   app_id: string
+  sp_appid: string
+  sp_mchid: string
+  sub_appid: string
+  sub_mchid: string
   api_v3_key: string
   cert_serial_no: string
   private_key_pem: string
@@ -33,6 +37,17 @@ export interface Carrier {
   audit_remark: string
   submitted_at?: string | null
   audited_at?: string | null
+}
+
+export interface AfterSaleReason {
+  id: number
+  code: string
+  label: string
+  type: 'all' | 'refund' | 'return_refund'
+  sort_order: number
+  enabled: number
+  created_at?: string
+  updated_at?: string
 }
 
 // ==== 商户端 ====
@@ -79,4 +94,21 @@ export function toggleCarrier(id: number, enabled: boolean) {
 }
 export function deleteCarrier(id: number) {
   return request.delete(`/platform/carriers/${id}`)
+}
+
+// 平台端：售后原因 CRUD
+export function listAfterSaleReasons() {
+  return request.get<any, AfterSaleReason[]>('/platform/after-sale-reasons')
+}
+export function createAfterSaleReason(payload: Partial<AfterSaleReason>) {
+  return request.post<any, AfterSaleReason>('/platform/after-sale-reasons', payload)
+}
+export function updateAfterSaleReason(id: number, payload: Partial<AfterSaleReason>) {
+  return request.put<any, AfterSaleReason>(`/platform/after-sale-reasons/${id}`, payload)
+}
+export function toggleAfterSaleReason(id: number, enabled: boolean) {
+  return request.patch(`/platform/after-sale-reasons/${id}/enabled`, { enabled })
+}
+export function deleteAfterSaleReason(id: number) {
+  return request.delete(`/platform/after-sale-reasons/${id}`)
 }

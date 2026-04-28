@@ -63,8 +63,9 @@ onMounted(load)
         <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
       </el-table-column>
       <el-table-column prop="provider" label="类型" width="100" />
-      <el-table-column prop="mch_id" label="商户号" width="160" />
-      <el-table-column prop="app_id" label="AppID" width="180" />
+      <el-table-column prop="sub_mchid" label="子商户号" width="160" />
+      <el-table-column prop="sub_appid" label="子商户 AppID" width="180" />
+      <el-table-column prop="mch_id" label="历史商户号" width="160" />
       <el-table-column prop="notify_url" label="回调地址" show-overflow-tooltip />
       <el-table-column label="状态" width="120">
         <template #default="{ row }">

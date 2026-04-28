@@ -9,6 +9,8 @@
           <el-option label="已发货" value="shipped" />
           <el-option label="已完成" value="completed" />
           <el-option label="已取消" value="cancelled" />
+          <el-option label="退款中" value="refunding" />
+          <el-option label="已退款" value="refunded" />
         </el-select>
         <el-button type="primary" @click="load">查询</el-button>
       </div>
@@ -136,6 +138,13 @@ function actionText(value: string) {
     cancel: '买家取消',
     ship: '卖家发货',
     confirm: '买家确认收货',
+    after_sale_apply: '买家申请售后',
+    after_sale_cancel: '买家取消售后',
+    after_sale_approve: '卖家同意售后',
+    after_sale_reject: '卖家驳回售后',
+    after_sale_return: '买家寄回商品',
+    after_sale_receive: '卖家确认收货',
+    after_sale_refund: '售后退款完成',
   }[value] || value
 }
 

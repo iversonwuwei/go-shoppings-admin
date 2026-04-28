@@ -9,6 +9,10 @@ const form = reactive({
   provider: 'wechat',
   mch_id: '',
   app_id: '',
+  sp_appid: '',
+  sp_mchid: '',
+  sub_appid: '',
+  sub_mchid: '',
   api_v3_key: '',
   cert_serial_no: '',
   private_key_pem: '',
@@ -24,20 +28,24 @@ async function load() {
     current.value = wechat
     if (wechat) {
       form.provider = wechat.provider
-      form.mch_id = wechat.mch_id
-      form.app_id = wechat.app_id
-      form.api_v3_key = wechat.api_v3_key
-      form.cert_serial_no = wechat.cert_serial_no
-      form.private_key_pem = wechat.private_key_pem
-      form.cert_pem = wechat.cert_pem
-      form.notify_url = wechat.notify_url
+      form.mch_id = wechat.mch_id || ''
+      form.app_id = wechat.app_id || ''
+      form.sp_appid = wechat.sp_appid || ''
+      form.sp_mchid = wechat.sp_mchid || ''
+      form.sub_appid = wechat.sub_appid || ''
+      form.sub_mchid = wechat.sub_mchid || ''
+      form.api_v3_key = wechat.api_v3_key || ''
+      form.cert_serial_no = wechat.cert_serial_no || ''
+      form.private_key_pem = wechat.private_key_pem || ''
+      form.cert_pem = wechat.cert_pem || ''
+      form.notify_url = wechat.notify_url || ''
     }
   } finally { loading.value = false }
 }
 
 async function save() {
-  if (!form.mch_id) return ElMessage.warning('请填写商户号')
-  if (!form.api_v3_key) return ElMessage.warning('请填写 APIv3 Key')
+  if (!form.sub_mchid && !form.mch_id) return ElMessage.warning('请填写子商户号或历史直连商户号')
+  if (!form.sub_mchid && form.mch_id && !form.api_v3_key) return ElMessage.warning('直连商户号需填写 APIv3 Key')
   await submitPaymentConfig({ ...form })
   ElMessage.success('已提交，等待平台审核')
   load()
@@ -58,7 +66,7 @@ onMounted(load)
     <el-card>
       <template #header>
         <div class="hd">
-          <span>收款配置（微信支付）</span>
+          <span>收款配置（微信服务商子商户）</span>
           <div v-if="current">
             <el-tag :type="auditType(current.audit_status)" style="margin-right:8px">
               {{ auditLabel(current.audit_status) }}
@@ -83,6 +91,27 @@ onMounted(load)
             <el-option label="微信支付" value="wechat" />
           </el-select>
         </el-form-item>
+
+        <el-divider content-position="left">子商户信息</el-divider>
+        <el-form-item label="子商户号 sub_mchid">
+          <el-input v-model="form.sub_mchid" />
+        </el-form-item>
+        <el-form-item label="子商户 AppID">
+          <el-input v-model="form.sub_appid" />
+        </el-form-item>
+        <el-form-item label="回调地址 notify_url">
+          <el-input v-model="form.notify_url" placeholder="https://.../api/v1/payments/callback/wechat" />
+        </el-form-item>
+
+        <el-divider content-position="left">服务商快照</el-divider>
+        <el-form-item label="服务商 AppID">
+          <el-input v-model="form.sp_appid" placeholder="可由平台审核时回填" />
+        </el-form-item>
+        <el-form-item label="服务商商户号">
+          <el-input v-model="form.sp_mchid" placeholder="可由平台审核时回填" />
+        </el-form-item>
+
+        <el-divider content-position="left">历史直连兼容</el-divider>
         <el-form-item label="商户号 mch_id">
           <el-input v-model="form.mch_id" />
         </el-form-item>
@@ -94,9 +123,6 @@ onMounted(load)
         </el-form-item>
         <el-form-item label="证书序列号">
           <el-input v-model="form.cert_serial_no" />
-        </el-form-item>
-        <el-form-item label="回调地址 notify_url">
-          <el-input v-model="form.notify_url" placeholder="https://..." />
         </el-form-item>
         <el-form-item label="商户私钥 PEM">
           <el-input v-model="form.private_key_pem" type="textarea" :rows="5" placeholder="-----BEGIN PRIVATE KEY-----" />

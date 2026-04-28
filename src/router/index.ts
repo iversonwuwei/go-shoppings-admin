@@ -47,6 +47,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '物流承运商管理', role: 'platform', icon: 'Van' },
       },
       {
+        path: 'platform/after-sale-reasons',
+        name: 'PlatformAfterSaleReasons',
+        component: () => import('@/views/platform/after-sale-reasons.vue'),
+        meta: { title: '售后原因', role: 'platform', icon: 'Tickets' },
+      },
+      {
         path: 'platform/sms',
         name: 'PlatformSms',
         component: () => import('@/views/platform/sms.vue'),
@@ -117,6 +123,12 @@ const routes: RouteRecordRaw[] = [
         name: 'AdminOrders',
         component: () => import('@/views/admin/orders.vue'),
         meta: { title: '订单列表', role: 'tenant', icon: 'Tickets' },
+      },
+      {
+        path: 'admin/after-sales',
+        name: 'AdminAfterSales',
+        component: () => import('@/views/admin/after-sales.vue'),
+        meta: { title: '售后处理', role: 'tenant', icon: 'Tickets' },
       },
       {
         path: 'admin/order-messages',

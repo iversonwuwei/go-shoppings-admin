@@ -35,7 +35,9 @@ src/
 # 1. 安装依赖（推荐 pnpm；npm/yarn 亦可）
 pnpm install      # 或 npm install
 
-# 2. 确保后端已运行在 http://127.0.0.1:8080（vite 已配置 /api 代理）
+# 2. 确保后端已运行在 http://127.0.0.1:18080（vite 已配置 /api 代理）
+#    如需改用其他后端端口，可设置代理目标：
+#    VITE_API_PROXY_TARGET=http://127.0.0.1:8080 npm run dev
 # 3. 启动开发服务器（默认 5173）
 pnpm dev
 ```

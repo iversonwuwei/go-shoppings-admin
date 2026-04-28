@@ -11,6 +11,11 @@ export interface PlatformGlobalSettings {
   wxpay_apiv3_key: string
   wxpay_cert_serial: string
   wxpay_notify_url: string
+  sp_appid: string
+  sp_mchid: string
+  sp_apiv3_key: string
+  sp_cert_serial: string
+  partner_notify_url: string
   updated_at?: string
 }
 
