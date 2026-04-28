@@ -89,6 +89,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '商品分类', role: 'platform', icon: 'Menu' },
       },
       {
+        path: 'platform/regions',
+        name: 'PlatformRegions',
+        component: () => import('@/views/platform/regions.vue'),
+        meta: { title: '城市信息', role: 'platform', icon: 'Location' },
+      },
+      {
         path: 'admin/categories',
         name: 'AdminCategories',
         component: () => import('@/views/admin/categories.vue'),

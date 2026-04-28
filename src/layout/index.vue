@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
-import { ArrowDown, Box, Brush, Coin, Cpu, DataBoard, Discount, Goods, Grid, Key, Link, Medal, Menu, Message, Money, OfficeBuilding, Present, PriceTag, Setting, Share, Tickets, Timer, User, Van, Wallet } from '@element-plus/icons-vue'
+import { ArrowDown, Box, Brush, Coin, Cpu, DataBoard, Discount, Goods, Grid, Key, Link, Location, Medal, Menu, Message, Money, OfficeBuilding, Present, PriceTag, Setting, Share, Tickets, Timer, User, Van, Wallet } from '@element-plus/icons-vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -46,7 +46,7 @@ const router = useRouter()
 const route = useRoute()
 const user = useUserStore()
 
-const iconMap: Record<string, any> = { DataBoard, OfficeBuilding, Goods, Tickets, Wallet, Van, PriceTag, Grid, User, Medal, Timer, Discount, Coin, Present, Share, Message, Key, Box, Brush, Link, Cpu }
+const iconMap: Record<string, any> = { DataBoard, OfficeBuilding, Goods, Tickets, Wallet, Van, PriceTag, Grid, User, Medal, Timer, Discount, Coin, Present, Share, Message, Key, Box, Brush, Link, Cpu, Location }
 
 const allMenus = [
   { path: '/platform/dashboard', title: '平台概览', icon: DataBoard, role: 'platform' },
@@ -62,6 +62,7 @@ const allMenus = [
   { path: '/platform/settings', title: '平台设置', icon: Setting, role: 'platform', platformRoles: ['super'] },
   { path: '/platform/users', title: '平台用户', icon: User, role: 'platform', platformRoles: ['super'] },
   { path: '/platform/categories', title: '商品分类', icon: Menu, role: 'platform', platformRoles: ['super', 'operator'] },
+  { path: '/platform/regions', title: '城市信息', icon: Location, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/admin/categories', title: '商品分类', icon: Menu, role: 'tenant' },
   { path: '/admin/products', title: '商品管理', icon: Goods, role: 'tenant' },
   { path: '/admin/inventory', title: '库存管理', icon: Box, role: 'tenant' },
