@@ -58,10 +58,30 @@ export interface PointsLog {
   created_at: string
 }
 
+export interface MemberCoupon {
+  id: number
+  member_id: number
+  coupon_id: number
+  coupon_name: string
+  coupon_type: string
+  threshold_amount?: string | number | null
+  discount_value: string | number
+  max_discount?: string | number | null
+  use_limit: number
+  received_at: string
+  valid_start_at: string
+  valid_end_at: string
+  used_at?: string | null
+  used_order_id: number
+  status: string
+  created_at: string
+}
+
 export interface AdminMemberDetailResp {
   member: AdminMember
   addresses: MemberAddress[]
   points_logs: PointsLog[]
+  coupons: MemberCoupon[]
 }
 
 export function listMembers(params: { page?: number; size?: number; keyword?: string; status?: number; level_id?: number }) {
@@ -81,4 +101,16 @@ export function updateMemberLevel(id: number, levelId: number | null, levelExpir
     level_id: levelId,
     level_expire_at: levelExpireAt || null,
   })
+}
+
+export function adjustMemberPoints(id: number, body: { change_value: number; source_desc?: string; remark?: string }) {
+  return request.post<any, PointsLog>(`/admin/members/${id}/points/adjust`, body)
+}
+
+export function grantMemberCoupon(id: number, couponId: number) {
+  return request.post<any, MemberCoupon>(`/admin/members/${id}/coupons`, { coupon_id: couponId })
+}
+
+export function updateMemberCouponStatus(id: number, memberCouponId: number, status: 'unused' | 'expired') {
+  return request.patch(`/admin/members/${id}/coupons/${memberCouponId}/status`, { status })
 }

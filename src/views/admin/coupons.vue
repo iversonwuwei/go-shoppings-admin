@@ -4,7 +4,7 @@ import {
     deleteCoupon,
     listCoupons,
     updateCoupon,
-    type Coupon, type CouponType,
+    type Coupon, type CouponReceiveLimitType, type CouponType,
 } from '@/api/coupon'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
@@ -21,8 +21,10 @@ interface FormState {
   threshold_amount: string
   discount_value: string
   max_discount: string
+  receive_limit_type: CouponReceiveLimitType
   total_count: number
   per_limit: number
+  use_limit: number
   receive_range: [string, string] | null
   valid_range: [string, string] | null
   valid_days: number
@@ -31,7 +33,7 @@ interface FormState {
 
 const form = reactive<FormState>({
   name: '', type: 'cash', threshold_amount: '', discount_value: '10',
-  max_discount: '', total_count: 100, per_limit: 1,
+  max_discount: '', receive_limit_type: 'limited', total_count: 100, per_limit: 1, use_limit: 1,
   receive_range: null, valid_range: null, valid_days: 30, status: 1,
 })
 
@@ -48,6 +50,15 @@ function discountLabel(row: Coupon): string {
   return '免邮'
 }
 
+function receiveStockLabel(row: Coupon): string {
+  if (row.receive_limit_type === 'unlimited') return '不限总量'
+  return `${row.remain_count} / ${row.total_count}`
+}
+
+function limitLabel(value: number, unit: string): string {
+  return Number(value || 0) > 0 ? `${value} ${unit}` : '不限'
+}
+
 async function load() {
   loading.value = true
   featureDisabled.value = false
@@ -61,7 +72,7 @@ async function load() {
 function resetForm() {
   Object.assign(form, {
     name: '', type: 'cash', threshold_amount: '', discount_value: '10',
-    max_discount: '', total_count: 100, per_limit: 1,
+    max_discount: '', receive_limit_type: 'limited', total_count: 100, per_limit: 1, use_limit: 1,
     receive_range: null, valid_range: null, valid_days: 30, status: 1,
   })
 }
@@ -80,8 +91,10 @@ function openEdit(row: Coupon) {
     threshold_amount: row.threshold_amount != null ? String(row.threshold_amount) : '',
     discount_value: String(row.discount_value),
     max_discount: row.max_discount != null ? String(row.max_discount) : '',
+    receive_limit_type: row.receive_limit_type || 'limited',
     total_count: row.total_count,
     per_limit: row.per_limit,
+    use_limit: row.use_limit ?? 1,
     receive_range: row.receive_start_at && row.receive_end_at ? [row.receive_start_at, row.receive_end_at] : null,
     valid_range: row.valid_start_at && row.valid_end_at ? [row.valid_start_at, row.valid_end_at] : null,
     valid_days: row.valid_days,
@@ -93,7 +106,9 @@ function openEdit(row: Coupon) {
 async function submit() {
   if (!form.name) return ElMessage.warning('请填写优惠券名称')
   if (Number(form.discount_value) <= 0) return ElMessage.warning('优惠值必须大于 0')
-  if (form.total_count < 0) return ElMessage.warning('总数量不能为负')
+  if (form.receive_limit_type === 'limited' && form.total_count < 0) return ElMessage.warning('总数量不能为负')
+  if (form.per_limit < 0) return ElMessage.warning('每人限领不能为负')
+  if (form.use_limit < 0) return ElMessage.warning('每人限用不能为负')
 
   const body: any = {
     name: form.name,
@@ -101,8 +116,10 @@ async function submit() {
     threshold_amount: form.threshold_amount ? Number(form.threshold_amount) : null,
     discount_value: Number(form.discount_value),
     max_discount: form.max_discount ? Number(form.max_discount) : null,
-    total_count: form.total_count,
+    receive_limit_type: form.receive_limit_type,
+    total_count: form.receive_limit_type === 'limited' ? form.total_count : 0,
     per_limit: form.per_limit,
+    use_limit: form.use_limit,
     receive_start_at: form.receive_range?.[0] || null,
     receive_end_at: form.receive_range?.[1] || null,
     valid_start_at: form.valid_range?.[0] || null,
@@ -170,8 +187,14 @@ onMounted(load)
             <span v-else style="color:#bbb">无</span>
           </template>
         </el-table-column>
-        <el-table-column label="数量" width="120">
-          <template #default="{ row }">{{ row.remain_count }} / {{ row.total_count }}</template>
+        <el-table-column label="领取总量" width="130">
+          <template #default="{ row }">{{ receiveStockLabel(row) }}</template>
+        </el-table-column>
+        <el-table-column label="每人限领" width="110">
+          <template #default="{ row }">{{ limitLabel(row.per_limit, '张') }}</template>
+        </el-table-column>
+        <el-table-column label="每人限用" width="110">
+          <template #default="{ row }">{{ limitLabel(row.use_limit, '次') }}</template>
         </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
@@ -217,11 +240,24 @@ onMounted(load)
             <template #prepend>¥</template>
           </el-input>
         </el-form-item>
-        <el-form-item label="总数量">
+        <el-form-item label="领取总量">
+          <el-radio-group v-model="form.receive_limit_type">
+            <el-radio-button value="limited">限制总发放</el-radio-button>
+            <el-radio-button value="unlimited">不限总发放</el-radio-button>
+          </el-radio-group>
+          <span class="hint">控制整张券活动最多发放多少张</span>
+        </el-form-item>
+        <el-form-item v-if="form.receive_limit_type === 'limited'" label="发放总量">
           <el-input-number v-model="form.total_count" :min="0" :max="999999" />
+          <span class="hint">保存后会按差值同步剩余量</span>
         </el-form-item>
         <el-form-item label="每人限领">
-          <el-input-number v-model="form.per_limit" :min="1" :max="99" />
+          <el-input-number v-model="form.per_limit" :min="0" :max="99" />
+          <span class="hint">0 表示不限领取次数</span>
+        </el-form-item>
+        <el-form-item label="每人限用">
+          <el-input-number v-model="form.use_limit" :min="0" :max="99" />
+          <span class="hint">0 表示不限使用次数，可用于“不限领取但限用 N 次”</span>
         </el-form-item>
         <el-form-item label="领取时间段">
           <el-date-picker v-model="form.receive_range" type="datetimerange" value-format="YYYY-MM-DDTHH:mm:ssZ"

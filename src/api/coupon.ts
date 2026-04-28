@@ -1,6 +1,7 @@
 import request from './request'
 
 export type CouponType = 'cash' | 'discount' | 'shipping'
+export type CouponReceiveLimitType = 'limited' | 'unlimited'
 
 export interface Coupon {
   id: number
@@ -10,9 +11,11 @@ export interface Coupon {
   threshold_amount?: string | number | null
   discount_value: string | number
   max_discount?: string | number | null
+  receive_limit_type: CouponReceiveLimitType
   total_count: number
   remain_count: number
   per_limit: number
+  use_limit: number
   receive_start_at?: string | null
   receive_end_at?: string | null
   valid_start_at?: string | null
