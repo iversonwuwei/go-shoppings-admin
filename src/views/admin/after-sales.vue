@@ -48,6 +48,10 @@ function memberCell(id: number) {
   return memberInfo(memberLookup.value.get(Number(id || 0)), id)
 }
 
+function afterSaleImages(row: AfterSaleOrder) {
+  return Array.isArray(row.images) ? row.images.filter(Boolean) : []
+}
+
 async function ensureMembers(ids: Array<number | null | undefined>) {
   const missing = uniquePositiveIds(ids).filter((id) => !memberLookup.value.has(id))
   if (!missing.length) return
@@ -143,6 +147,24 @@ onMounted(load)
       </el-table-column>
       <el-table-column prop="amount" label="金额" width="100" />
       <el-table-column prop="reason" label="原因" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="description" label="说明" min-width="180" show-overflow-tooltip />
+      <el-table-column label="凭证图片" min-width="170">
+        <template #default="{ row }">
+          <div v-if="afterSaleImages(row).length" class="proof-list">
+            <el-image
+              v-for="image in afterSaleImages(row).slice(0, 3)"
+              :key="image"
+              class="proof-image"
+              :src="image"
+              :preview-src-list="afterSaleImages(row)"
+              fit="cover"
+              preview-teleported
+            />
+            <span v-if="afterSaleImages(row).length > 3" class="proof-more">+{{ afterSaleImages(row).length - 3 }}</span>
+          </div>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" width="110">
         <template #default="{ row }"><el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag></template>
       </el-table-column>
@@ -180,4 +202,7 @@ onMounted(load)
 .hd { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .filters { display: flex; align-items: center; gap: 8px; }
 .pager { margin-top: 12px; justify-content: flex-end; display: flex; }
+.proof-list { display: flex; align-items: center; gap: 6px; }
+.proof-image { width: 42px; height: 42px; border-radius: 6px; overflow: hidden; background: var(--el-fill-color-light); }
+.proof-more { color: var(--el-text-color-secondary); font-size: 12px; }
 </style>

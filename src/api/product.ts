@@ -1,6 +1,6 @@
+import { useUserStore } from '@/stores/user'
 import axios from 'axios'
 import request from './request'
-import { useUserStore } from '@/stores/user'
 
 export interface Product {
   id: number
@@ -12,6 +12,7 @@ export interface Product {
   images: string[]
   video_url: string
   description: string
+  detail_images: string[]
   price: string
   stock: number
   stock_warning: number
@@ -104,8 +105,8 @@ export function listCategories() {
   return request.get<any, Category[]>('/admin/categories')
 }
 
-export function updateTenantCategoryMedia(id: number, payload: { cover_image?: string; icon?: string }) {
-  return request.put<any, { id: number; cover_image: string; icon: string }>(`/admin/categories/${id}/media`, payload)
+export function updateTenantCategoryMedia(id: number, payload: { cover_image?: string; icon?: string; sort?: number }) {
+  return request.put<any, { id: number; cover_image: string; icon: string; sort?: number }>(`/admin/categories/${id}/media`, payload)
 }
 
 // 平台端：商品分类统一管理（tenant_id=0 共享给所有租户）

@@ -8,9 +8,12 @@ const loading = ref(false)
 const list = ref<Category[]>([])
 const dialog = ref(false)
 const editing = ref<Category | null>(null)
+const sortDraft = ref<Record<number, number>>({})
+const savingSort = ref<Record<number, boolean>>({})
 const form = reactive({
   cover_image: '',
   icon: '',
+  sort: 0,
 })
 
 const parentNameMap = computed(() => {
@@ -24,7 +27,9 @@ const parentNameMap = computed(() => {
 async function load() {
   loading.value = true
   try {
-    list.value = await listCategories()
+    const rows = await listCategories()
+    list.value = rows
+    sortDraft.value = Object.fromEntries(rows.map((item) => [item.id, item.sort || 0]))
   } finally {
     loading.value = false
   }
@@ -34,7 +39,26 @@ function openEdit(row: Category) {
   editing.value = row
   form.cover_image = row.cover_image || ''
   form.icon = row.icon || ''
+  form.sort = row.sort || 0
   dialog.value = true
+}
+
+async function saveSort(row: Category) {
+  const nextSort = Number(sortDraft.value[row.id] ?? row.sort ?? 0)
+  savingSort.value = { ...savingSort.value, [row.id]: true }
+  try {
+    await updateTenantCategoryMedia(row.id, {
+      cover_image: row.cover_image || '',
+      icon: row.icon || '',
+      sort: nextSort,
+    })
+    ElMessage.success('排序已保存')
+    await load()
+  } catch (error: any) {
+    ElMessage.error(error?.message || '保存失败')
+  } finally {
+    savingSort.value = { ...savingSort.value, [row.id]: false }
+  }
 }
 
 async function submit() {
@@ -43,8 +67,9 @@ async function submit() {
     await updateTenantCategoryMedia(editing.value.id, {
       cover_image: form.cover_image,
       icon: form.icon,
+      sort: form.sort,
     })
-    ElMessage.success('分类图片已更新')
+    ElMessage.success('分类设置已更新')
     dialog.value = false
     await load()
   } catch (error: any) {
@@ -61,7 +86,7 @@ onMounted(load)
       type="info"
       show-icon
       :closable="false"
-      title="分类名称、层级、排序由平台统一管理；租户只能维护自己的分类图片。"
+      title="分类名称、层级由平台统一管理；租户可维护自己的分类图片和显示排序。"
       style="margin-bottom: 12px"
     />
 
@@ -79,7 +104,21 @@ onMounted(load)
           <span v-else style="color:#909399">未设置</span>
         </template>
       </el-table-column>
-      <el-table-column prop="sort" label="排序" width="90" />
+      <el-table-column label="租户排序" width="180">
+        <template #default="{ row }">
+          <div class="sort-editor">
+            <el-input-number
+              v-model="sortDraft[row.id]"
+              :min="0"
+              :max="999999"
+              :controls="false"
+              size="small"
+              style="width: 92px"
+            />
+            <el-button link type="primary" :loading="savingSort[row.id]" @click="saveSort(row)">保存</el-button>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '禁用' }}</el-tag>
@@ -87,12 +126,12 @@ onMounted(load)
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="operation-column" width="120">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openEdit(row)">上传图片</el-button>
+          <el-button link type="primary" @click="openEdit(row)">设置</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialog" title="设置分类图片" width="520px">
+    <el-dialog v-model="dialog" title="设置分类图片与排序" width="520px">
       <el-form label-width="90px">
         <el-form-item label="分类名称">
           <el-input :model-value="editing?.name || ''" disabled />
@@ -106,6 +145,9 @@ onMounted(load)
             :ai-prompt-context="editing?.parent_id ? `上级分类：${parentNameMap.get(editing.parent_id) || '未设置'}` : '顶级分类'"
           />
         </el-form-item>
+        <el-form-item label="排序值">
+          <el-input-number v-model="form.sort" :min="0" :max="999999" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialog = false">取消</el-button>
@@ -114,3 +156,11 @@ onMounted(load)
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.sort-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+</style>

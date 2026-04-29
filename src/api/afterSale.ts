@@ -17,6 +17,7 @@ export interface AfterSaleOrder {
   order_status_before: string
   audit_remark: string
   refund_remark: string
+  return_express_code: string
   return_express_company: string
   return_express_no: string
   refund_no: string

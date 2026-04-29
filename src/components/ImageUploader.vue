@@ -81,6 +81,7 @@ type ImageUsage =
   | 'common'
   | 'product-cover'
   | 'product-gallery'
+  | 'product-detail'
   | 'category-cover'
   | 'storefront-banner'
   | 'brand-logo'
@@ -138,6 +139,16 @@ const usageRules: Record<ImageUsage, ImageRule> = {
     compressMaxHeight: 1600,
     quality: 0.82,
     maxOutputBytes: 1200 * 1024,
+    outputType: 'image/jpeg',
+  },
+  'product-detail': {
+    label: '商品详情图',
+    minWidth: 600,
+    minHeight: 400,
+    compressMaxWidth: 1600,
+    compressMaxHeight: 2400,
+    quality: 0.82,
+    maxOutputBytes: 1400 * 1024,
     outputType: 'image/jpeg',
   },
   'category-cover': {

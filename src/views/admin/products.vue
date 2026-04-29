@@ -111,6 +111,17 @@
         <el-form-item label="商品详情">
           <el-input v-model="editing.description" type="textarea" :rows="5" maxlength="5000" show-word-limit />
         </el-form-item>
+        <el-form-item label="详情图片">
+          <ImageUploader
+            v-model="detailImages"
+            multiple
+            :max="20"
+            folder="products"
+            usage="product-detail"
+            :ai-prompt-subject="productPromptSubject"
+            :ai-prompt-context="productPromptContext"
+          />
+        </el-form-item>
         <el-form-item label="价格">
           <el-input v-model="editing.price" />
         </el-form-item>
@@ -194,6 +205,7 @@ const editing = reactive<Partial<Product> & {
   price: '0.00',
   delivery_fee: '0.00',
   images: [],
+  detail_images: [],
   delivery_type: ['express'],
   sort: 0,
 })
@@ -205,6 +217,10 @@ const coverImage = computed({
 const productImages = computed<string[]>({
   get: () => (editing.images as string[]) || [],
   set: (v: string[]) => { editing.images = v },
+})
+const detailImages = computed<string[]>({
+  get: () => (editing.detail_images as string[]) || [],
+  set: (v: string[]) => { editing.detail_images = v },
 })
 const selectedCategoryName = computed(() => categories.value.find((item) => item.id === editing.category_id)?.name || '')
 const productPromptSubject = computed(() => (editing.name || selectedCategoryName.value || '商品').trim())
@@ -279,6 +295,7 @@ function openEdit(row?: Product) {
     Object.assign(editing, row, {
       delivery_type: row.delivery_type?.length ? row.delivery_type : ['express'],
       delivery_fee: row.delivery_fee || '0.00',
+      detail_images: row.detail_images || [],
       video_url: row.video_url || '',
       sort: row.sort ?? 0,
       _active: row.status === 1,
@@ -293,6 +310,7 @@ function openEdit(row?: Product) {
       category_id: undefined,
       cover_image: '',
       images: [],
+      detail_images: [],
       video_url: '',
       description: '',
       price: '0.00',
@@ -325,6 +343,7 @@ async function save() {
       category_id: editing.category_id || null,
       cover_image: editing.cover_image || '',
       images: editing.images || [],
+      detail_images: editing.detail_images || [],
       video_url: editing.video_url || '',
       description: editing.description || '',
       price: editing.price,
