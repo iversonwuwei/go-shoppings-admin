@@ -379,7 +379,7 @@ onMounted(load)
         <el-table-column label="注册时间" width="170">
           <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column label="操作" align="center" class-name="operation-column" width="240" fixed="right">
           <template #default="{ row }">
             <el-button size="small" :icon="View" @click="openDetail(row)">详情</el-button>
             <el-button size="small" :icon="Medal" @click="openLevel(row)">等级</el-button>
@@ -474,7 +474,7 @@ onMounted(load)
                 <el-table-column label="领取时间" width="160">
                   <template #default="{ row }">{{ formatTime(row.received_at) }}</template>
                 </el-table-column>
-                <el-table-column label="操作" width="150" fixed="right">
+                <el-table-column label="操作" align="center" class-name="operation-column" width="150" fixed="right">
                   <template #default="{ row }">
                     <el-button
                       v-if="row.status === 'unused' && memberCouponDisplayStatus(row) === 'unused'"

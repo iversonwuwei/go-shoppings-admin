@@ -85,7 +85,7 @@ onMounted(load)
           <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '禁用' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" align="center" class-name="operation-column" width="120">
         <template #default="{ row }">
           <el-button link type="primary" @click="openEdit(row)">上传图片</el-button>
         </template>

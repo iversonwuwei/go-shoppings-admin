@@ -73,7 +73,7 @@ onMounted(load)
         </template>
       </el-table-column>
       <el-table-column prop="submitted_at" label="提交时间" width="180" />
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" align="center" class-name="operation-column" width="180" fixed="right">
         <template #default="{ row }">
           <el-button link type="success" :disabled="row.audit_status === 1" @click="doAudit(row, true)">通过</el-button>
           <el-button link type="danger" :disabled="row.audit_status === 2" @click="doAudit(row, false)">驳回</el-button>

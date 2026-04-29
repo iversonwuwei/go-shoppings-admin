@@ -39,7 +39,7 @@
             <el-tag :type="tagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="360" fixed="right">
+        <el-table-column label="操作" align="center" class-name="operation-column" width="360" fixed="right">
           <template #default="{ row }">
             <template v-if="row.status === 0">
               <el-button size="small" type="primary" @click="audit(row, true)">通过</el-button>

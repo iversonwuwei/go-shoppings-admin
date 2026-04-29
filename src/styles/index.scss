@@ -17,3 +17,51 @@ a {
 .page {
   padding: 16px;
 }
+
+.el-table .operation-column .cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.el-table .operation-column .cell .el-button {
+  margin-left: 0 !important;
+  min-width: 52px;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.el-table .operation-column .cell .el-button.is-link {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-blank);
+  font-weight: 500;
+}
+
+.el-table .operation-column .cell .el-button.is-link:hover,
+.el-table .operation-column .cell .el-button.is-link:focus {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+
+.el-table .operation-column .cell .el-button.is-link.el-button--success:hover,
+.el-table .operation-column .cell .el-button.is-link.el-button--success:focus {
+  border-color: var(--el-color-success-light-5);
+  background: var(--el-color-success-light-9);
+}
+
+.el-table .operation-column .cell .el-button.is-link.el-button--warning:hover,
+.el-table .operation-column .cell .el-button.is-link.el-button--warning:focus {
+  border-color: var(--el-color-warning-light-5);
+  background: var(--el-color-warning-light-9);
+}
+
+.el-table .operation-column .cell .el-button.is-link.el-button--danger:hover,
+.el-table .operation-column .cell .el-button.is-link.el-button--danger:focus {
+  border-color: var(--el-color-danger-light-5);
+  background: var(--el-color-danger-light-9);
+}

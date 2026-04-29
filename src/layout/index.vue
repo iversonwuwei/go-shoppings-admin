@@ -79,6 +79,7 @@ const allMenus = [
   { path: '/admin/distribution', title: '分销管理', icon: Share, role: 'tenant' },
   { path: '/admin/delivery', title: '配送设置', icon: Box, role: 'tenant' },
   { path: '/admin/site', title: '商城装修', icon: Brush, role: 'tenant' },
+  { path: '/admin/mini-qrcode', title: '小程序码', icon: Grid, role: 'tenant' },
   { path: '/admin/settings/payment', title: '收款配置', icon: Wallet, role: 'tenant' },
   { path: '/admin/settings/carriers', title: '物流承运商', icon: Van, role: 'tenant' },
   { path: '/admin/billing', title: '订阅付费', icon: Money, role: 'tenant' },

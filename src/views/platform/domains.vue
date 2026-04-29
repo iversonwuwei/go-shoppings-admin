@@ -18,7 +18,7 @@
       </el-table-column>
       <el-table-column prop="ssl_status" label="SSL 状态" width="110" />
       <el-table-column prop="updated_at" label="最近更新" width="180" />
-      <el-table-column label="操作" width="260">
+      <el-table-column label="操作" align="center" class-name="operation-column" width="260">
         <template #default="{ row }">
           <el-button
             size="small"

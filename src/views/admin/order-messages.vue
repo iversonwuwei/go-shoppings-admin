@@ -25,7 +25,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="180" />
-        <el-table-column label="操作" width="120">
+        <el-table-column label="操作" align="center" class-name="operation-column" width="120">
           <template #default="{ row }">
             <el-button v-if="row.status === 'unread'" link type="primary" @click="readOne(row.id)">标记已读</el-button>
           </template>

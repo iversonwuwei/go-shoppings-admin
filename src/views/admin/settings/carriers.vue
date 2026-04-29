@@ -53,7 +53,7 @@ onMounted(load)
           </template>
         </el-table-column>
         <el-table-column prop="priority" label="优先级" width="100" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" align="center" class-name="operation-column" width="180" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :icon="Search" @click="openTrack(row)">物流查询</el-button>
           </template>

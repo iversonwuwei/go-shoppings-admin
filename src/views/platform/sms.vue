@@ -60,7 +60,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="220">
+          <el-table-column label="操作" align="center" class-name="operation-column" width="220">
             <template #default="{ row }">
               <el-button size="small" @click="editTpl(row)">编辑</el-button>
               <el-button size="small" :type="row.enabled === 1 ? 'warning' : 'success'" @click="toggleTpl(row)">

@@ -219,6 +219,44 @@
         </el-form>
       </el-tab-pane>
 
+      <el-tab-pane label="小程序码" name="mini-qrcode">
+        <el-alert
+          type="info"
+          show-icon
+          :closable="false"
+          title="当前登录租户自行生成本租户小程序码，编码同生产小程序码一致的租户入口参数；正式发布时可用 scene 调微信接口生成。"
+          style="margin-bottom: 16px"
+        />
+        <div class="mini-code-layout">
+          <div class="mini-code-preview">
+            <el-empty v-if="!miniQRCode" description="点击生成本租户小程序码" />
+            <img v-else class="mini-code-image" :src="miniQRCode.image_data_url" alt="本租户小程序码" />
+          </div>
+          <el-form label-width="120px" class="mini-code-info">
+            <el-form-item label="租户编号">
+              <span class="mono">{{ miniQRCode?.tenant_code || '-' }}</span>
+            </el-form-item>
+            <el-form-item label="入口页面">
+              <span class="mono">{{ miniQRCode?.page || 'pages/home/index' }}</span>
+            </el-form-item>
+            <el-form-item label="Scene">
+              <span class="mono">{{ miniQRCode?.scene || '-' }}</span>
+            </el-form-item>
+            <el-form-item label="调试参数">
+              <span class="mono">{{ miniQRCode?.query || '-' }}</span>
+            </el-form-item>
+            <el-form-item label="完整路径">
+              <span class="mono">{{ miniQRCode?.path || '-' }}</span>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :loading="miniQrLoading" @click="generateMiniQRCode">生成本租户小程序码</el-button>
+              <el-button :disabled="!miniQRCode" @click="downloadMiniQRCode">下载 PNG</el-button>
+              <el-button :disabled="!miniQRCode" @click="copyMiniQRCodeEntry">复制入口参数</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-tab-pane>
+
       <el-tab-pane label="自定义域名" name="domain">
         <el-alert
           v-if="domainDisabled"
@@ -309,11 +347,13 @@
 
 <script setup lang="ts">
 import {
+    getMiniQRCode,
     getSiteConfig,
     updateSiteBrand,
     updateSiteDeployment,
     updateSiteDomain,
     updateSiteStorefront,
+    type MiniQRCode,
     type SiteConfig,
     type StorefrontBanner,
     type StorefrontMemberEntry,
@@ -323,9 +363,23 @@ import {
 } from '@/api/site'
 import ImageUploader from '@/components/ImageUploader.vue'
 import { ElMessage } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
-const activeTab = ref('storefront')
+const route = useRoute()
+
+function tabFromRoute(path: string) {
+  return path === '/admin/mini-qrcode' ? 'mini-qrcode' : 'storefront'
+}
+
+const activeTab = ref(tabFromRoute(route.path))
+
+watch(
+  () => route.path,
+  (path) => {
+    activeTab.value = tabFromRoute(path)
+  },
+)
 
 const config = reactive<SiteConfig>({
   custom_domain: '',
@@ -422,6 +476,8 @@ const storefrontPathOptions = [
 const domainDisabled = ref(false)
 const brandDisabled = ref(false)
 const deployDisabled = ref(false)
+const miniQrLoading = ref(false)
+const miniQRCode = ref<MiniQRCode | null>(null)
 
 function isDisabledErr(e: unknown): boolean {
   const err = e as { code?: number }
@@ -493,6 +549,55 @@ async function load() {
   const data = await getSiteConfig()
   Object.assign(config, data)
   syncFromConfig()
+}
+
+async function generateMiniQRCode() {
+  miniQrLoading.value = true
+  try {
+    miniQRCode.value = await getMiniQRCode()
+    ElMessage.success('本租户小程序码已生成')
+  } finally {
+    miniQrLoading.value = false
+  }
+}
+
+async function copyText(text: string) {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制')
+  } catch {
+    const input = document.createElement('textarea')
+    input.value = text
+    input.style.position = 'fixed'
+    input.style.left = '-9999px'
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+    ElMessage.success('已复制')
+  }
+}
+
+function copyMiniQRCodeEntry() {
+  const item = miniQRCode.value
+  if (!item) return
+  copyText([
+    `tenantCode=${item.tenant_code}`,
+    `page=${item.page}`,
+    `scene=${item.scene}`,
+    `query=${item.query}`,
+    `path=${item.path}`,
+  ].join('\n'))
+}
+
+function downloadMiniQRCode() {
+  const item = miniQRCode.value
+  if (!item) return
+  const link = document.createElement('a')
+  link.href = item.image_data_url
+  link.download = `mini-qrcode-${item.tenant_code}.png`
+  link.click()
 }
 
 function addQuickEntry() {
@@ -647,5 +752,34 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.mini-code-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  max-width: 900px;
+}
+.mini-code-preview {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  background: var(--el-fill-color-blank);
+}
+.mini-code-image {
+  width: 260px;
+  height: 260px;
+  object-fit: contain;
+}
+.mini-code-info {
+  max-width: 560px;
+}
+@media (max-width: 760px) {
+  .mini-code-layout {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

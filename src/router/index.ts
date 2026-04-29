@@ -191,6 +191,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '商城装修', role: 'tenant', icon: 'Brush' },
       },
       {
+        path: 'admin/mini-qrcode',
+        name: 'AdminMiniQRCode',
+        component: () => import('@/views/admin/site.vue'),
+        meta: { title: '本租户小程序码', role: 'tenant', icon: 'Grid' },
+      },
+      {
         path: 'admin/settings/payment',
         name: 'AdminSettingsPayment',
         component: () => import('@/views/admin/settings/payment.vue'),

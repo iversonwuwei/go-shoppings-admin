@@ -36,7 +36,7 @@
         <el-table-column prop="last_login_at" label="最近登录" width="170">
           <template #default="{ row }">{{ fmt(row.last_login_at) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="260">
+        <el-table-column label="操作" align="center" class-name="operation-column" width="260">
           <template #default="{ row }">
             <el-button size="small" @click="openEdit(row)">编辑</el-button>
             <el-button size="small" @click="openReset(row)">重置密码</el-button>

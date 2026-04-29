@@ -32,7 +32,7 @@
         <el-table-column prop="receiver_name" label="收件人" width="100" />
         <el-table-column prop="receiver_phone" label="电话" width="140" />
         <el-table-column prop="created_at" label="下单时间" width="180" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" align="center" class-name="operation-column" width="220" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.status === 'paid'" size="small" type="primary" @click="doPrepare(row)">开始处理</el-button>
             <el-button v-if="row.status === 'preparing'" size="small" type="primary" @click="openShip(row)">发货</el-button>

@@ -63,8 +63,23 @@ export interface StorefrontMemberEntry {
   path: string
 }
 
+export interface MiniQRCode {
+  tenant_id: number
+  tenant_code: string
+  page: string
+  scene: string
+  query: string
+  path: string
+  qr_payload: string
+  image_data_url: string
+  simulated: boolean
+}
+
 export function getSiteConfig() {
   return request.get<any, SiteConfig>('/admin/site/config')
+}
+export function getMiniQRCode() {
+  return request.get<any, MiniQRCode>('/tenant/site/mini-qrcode')
 }
 export function updateSiteDomain(data: { custom_domain: string }) {
   return request.put<any, SiteConfig>('/admin/site/domain', data)

@@ -191,7 +191,7 @@ onMounted(() => { load(); loadProducts() })
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" align="center" class-name="operation-column" width="160" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" :disabled="featureDisabled" @click="openEdit(row)">编辑</el-button>
             <el-button link type="danger" :disabled="featureDisabled" @click="remove(row)">删除</el-button>

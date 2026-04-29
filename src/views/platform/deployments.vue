@@ -25,7 +25,7 @@
       <el-table-column prop="private_endpoint" label="私有端点" />
       <el-table-column prop="private_notes" label="运维备注" />
       <el-table-column prop="updated_at" label="最近更新" width="180" />
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" align="center" class-name="operation-column" width="120">
         <template #default="{ row }">
           <el-button size="small" @click="openEdit(row)">编辑</el-button>
         </template>

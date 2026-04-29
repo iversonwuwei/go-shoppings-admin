@@ -259,7 +259,7 @@ onMounted(loadSettings)
               </template>
             </el-table-column>
             <el-table-column prop="created_at" label="申请时间" width="180" />
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" align="center" class-name="operation-column" width="180" fixed="right">
               <template #default="{ row }">
                 <el-button v-if="row.status === 0" link type="primary" :disabled="featureDisabled" @click="approve(row)">审核通过</el-button>
                 <el-button v-if="row.status === 1" link type="danger" :disabled="featureDisabled" @click="freeze(row)">冻结</el-button>

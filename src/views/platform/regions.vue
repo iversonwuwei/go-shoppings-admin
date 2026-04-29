@@ -193,7 +193,7 @@ onMounted(load)
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="260" fixed="right">
+      <el-table-column label="操作" align="center" class-name="operation-column" width="260" fixed="right">
         <template #default="{ row }">
           <el-button v-if="row.level < 3" link type="primary" @click="openCreate(row)">新增下级</el-button>
           <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
