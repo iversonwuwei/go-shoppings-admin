@@ -438,4 +438,52 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
 }
 
 .footer { padding: 24px; text-align:center; color:#9ca3af; font-size: 12px; }
+
+@media (max-width: 768px) {
+  .nav {
+    padding: 12px 16px;
+    gap: 12px;
+
+    .brand { min-width: 0; }
+    .title { font-size: 14px; }
+    .subtitle { display: none; }
+  }
+
+  .hero {
+    padding: 48px 16px;
+
+    h1 { font-size: 30px; }
+    p { font-size: 15px; }
+    .cta { flex-wrap: wrap; }
+  }
+
+  .section {
+    padding: 44px 16px;
+
+    h2 { font-size: 24px; }
+  }
+
+  .features,
+  .plans {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-switch {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .apply-code-row {
+    flex-direction: column;
+  }
+
+  .cta-band {
+    padding: 40px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 26px; }
+  .hero .cta :deep(.el-button) { width: 100%; }
+}
 </style>
