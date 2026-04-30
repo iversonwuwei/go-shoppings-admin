@@ -48,7 +48,7 @@ onMounted(load)
   <el-card v-loading="loading">
     <template #header>
       <div class="hd">
-        <span>商户收款配置审核</span>
+        <span>商户结算资料审核</span>
         <el-select v-model="status" style="width:160px" @change="(page=1, load())" clearable placeholder="审核状态">
           <el-option label="待审核" :value="0" />
           <el-option label="已通过" :value="1" />
@@ -63,10 +63,10 @@ onMounted(load)
         <template #default="{ row }"><RelatedInfo v-bind="tenantCell(row.tenant_id)" /></template>
       </el-table-column>
       <el-table-column prop="provider" label="类型" width="100" />
-      <el-table-column prop="sub_mchid" label="子商户号" width="160" />
-      <el-table-column prop="sub_appid" label="子商户 AppID" width="180" />
-      <el-table-column prop="mch_id" label="历史商户号" width="160" />
-      <el-table-column prop="notify_url" label="回调地址" show-overflow-tooltip />
+      <el-table-column prop="settlement_account_name" label="结算户名" width="160" />
+      <el-table-column prop="settlement_account_no" label="结算账号" width="180" show-overflow-tooltip />
+      <el-table-column prop="settlement_bank_name" label="开户行/渠道" width="160" />
+      <el-table-column prop="settlement_remark" label="备注" show-overflow-tooltip />
       <el-table-column label="状态" width="120">
         <template #default="{ row }">
           <el-tag :type="auditType(row.audit_status)">{{ auditLabel(row.audit_status) }}</el-tag>

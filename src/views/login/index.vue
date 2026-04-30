@@ -367,7 +367,7 @@ async function submitApply() {
   applying.value = true
   try {
     await applyTenant({ ...f })
-    ElMessage.success('提交成功，请等待平台审核')
+    ElMessage.success('提交成功：请等待平台审核；审核后登录商户后台，在“订阅付费”中创建订单并完成付款')
     applyDialog.value = false
   } finally {
     applying.value = false

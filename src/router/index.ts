@@ -38,7 +38,7 @@ const routes: RouteRecordRaw[] = [
         path: 'platform/payment-audit',
         name: 'PlatformPaymentAudit',
         component: () => import('@/views/platform/payment-audit.vue'),
-        meta: { title: '收款配置审核', role: 'platform', icon: 'Wallet' },
+        meta: { title: '结算资料审核', role: 'platform', icon: 'Wallet' },
       },
       {
         path: 'platform/carriers-audit',
@@ -200,7 +200,7 @@ const routes: RouteRecordRaw[] = [
         path: 'admin/settings/payment',
         name: 'AdminSettingsPayment',
         component: () => import('@/views/admin/settings/payment.vue'),
-        meta: { title: '收款配置', role: 'tenant', icon: 'Wallet' },
+        meta: { title: '结算资料', role: 'tenant', icon: 'Wallet' },
       },
       {
         path: 'admin/settings/carriers',

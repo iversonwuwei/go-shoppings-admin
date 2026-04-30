@@ -145,7 +145,7 @@ async function submit() {
     const r = await request.post<any, { id: number; code: string; status: number }>('/public/apply', form)
     dialog.value = false
     await ElMessageBox.alert(
-      `入驻申请已提交！您的商户编码为 ${r.code}，管理员账号已创建，待平台审核通过后即可登录商户后台。`,
+      `入驻申请已提交！您的商户编码为 ${r.code}，管理员账号已创建。\n\n下一步：\n1. 等待平台审核通过\n2. 使用申请时设置的管理员账号登录商户后台\n3. 进入“订阅付费”页面创建订单并完成支付（本地联调可用一键模拟支付）`,
       '提交成功',
       { confirmButtonText: '好的' },
     )
@@ -170,7 +170,7 @@ function featLabel(k: string) { return featureLabels.value[k] || k }
 const features = [
   { icon: Goods, title: '商品 & SKU 管理', desc: '分类、规格、库存、上下架、批量导入，满足不同业态商品管理需求。' },
   { icon: Ticket, title: '优惠券 & 积分', desc: '满减、折扣、直减、积分抵扣多种营销玩法，提升复购转化。' },
-  { icon: Wallet, title: '微信支付 & 多账户', desc: '租户独立配置商户号，平台审核通过后即刻生效，资金独立结算。' },
+  { icon: Wallet, title: '平台统一收款', desc: '顾客订单先进入平台账户，平台按账期汇总结算给租户。' },
   { icon: Van, title: '多承运商物流', desc: '平台统一对接快递100 / 阿里云 / 顺丰，租户一键选择、实时查询轨迹。' },
   { icon: OfficeBuilding, title: '多租户隔离', desc: '数据、流量、配置完全租户维度隔离，合规安全。' },
   { icon: DataBoard, title: '数据看板', desc: '订单、销售、会员、商品多维度指标，经营状况一目了然。' },

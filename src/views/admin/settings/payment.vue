@@ -6,13 +6,17 @@ import { onMounted, reactive, ref } from 'vue'
 const loading = ref(false)
 const current = ref<PaymentConfig | null>(null)
 const form = reactive({
-  provider: 'wechat',
+  provider: 'manual_settlement',
   mch_id: '',
   app_id: '',
   sp_appid: '',
   sp_mchid: '',
   sub_appid: '',
   sub_mchid: '',
+  settlement_account_name: '',
+  settlement_account_no: '',
+  settlement_bank_name: '',
+  settlement_remark: '',
   api_v3_key: '',
   cert_serial_no: '',
   private_key_pem: '',
@@ -24,7 +28,7 @@ async function load() {
   loading.value = true
   try {
     const list = await getPaymentConfigs()
-    const wechat = (list || []).find((x) => x.provider === 'wechat') || null
+    const wechat = (list || []).find((x) => x.provider === 'manual_settlement') || (list || []).find((x) => x.provider === 'wechat') || null
     current.value = wechat
     if (wechat) {
       form.provider = wechat.provider
@@ -34,6 +38,10 @@ async function load() {
       form.sp_mchid = wechat.sp_mchid || ''
       form.sub_appid = wechat.sub_appid || ''
       form.sub_mchid = wechat.sub_mchid || ''
+      form.settlement_account_name = wechat.settlement_account_name || ''
+      form.settlement_account_no = wechat.settlement_account_no || ''
+      form.settlement_bank_name = wechat.settlement_bank_name || ''
+      form.settlement_remark = wechat.settlement_remark || ''
       form.api_v3_key = wechat.api_v3_key || ''
       form.cert_serial_no = wechat.cert_serial_no || ''
       form.private_key_pem = wechat.private_key_pem || ''
@@ -44,10 +52,9 @@ async function load() {
 }
 
 async function save() {
-  if (!form.sub_mchid && !form.mch_id) return ElMessage.warning('请填写子商户号或历史直连商户号')
-  if (!form.sub_mchid && form.mch_id && !form.api_v3_key) return ElMessage.warning('直连商户号需填写 APIv3 Key')
+  if (!form.settlement_account_name || !form.settlement_account_no) return ElMessage.warning('请填写结算户名和结算账号')
   await submitPaymentConfig({ ...form })
-  ElMessage.success('已提交，等待平台审核')
+  ElMessage.success('结算资料已提交，等待平台审核')
   load()
 }
 
@@ -66,7 +73,7 @@ onMounted(load)
     <el-card>
       <template #header>
         <div class="hd">
-          <span>收款配置（微信服务商子商户）</span>
+          <span>结算资料</span>
           <div v-if="current">
             <el-tag :type="auditType(current.audit_status)" style="margin-right:8px">
               {{ auditLabel(current.audit_status) }}
@@ -82,53 +89,28 @@ onMounted(load)
         审核驳回：{{ current.audit_remark || '（无备注）' }}
       </el-alert>
       <el-alert v-else-if="current?.audit_status === 0 && current" type="warning" :closable="false" style="margin-bottom:12px">
-        正在等待平台审核，审核通过后自动启用。
+        正在等待平台审核，审核通过后进入账期结算候选范围。
       </el-alert>
 
       <el-form :model="form" label-width="140px">
         <el-form-item label="支付方式">
           <el-select v-model="form.provider" style="width:200px">
-            <el-option label="微信支付" value="wechat" />
+            <el-option label="账期结算" value="manual_settlement" />
           </el-select>
         </el-form-item>
 
-        <el-divider content-position="left">子商户信息</el-divider>
-        <el-form-item label="子商户号 sub_mchid">
-          <el-input v-model="form.sub_mchid" />
+        <el-divider content-position="left">账期结算账户</el-divider>
+        <el-form-item label="结算户名">
+          <el-input v-model="form.settlement_account_name" maxlength="100" />
         </el-form-item>
-        <el-form-item label="子商户 AppID">
-          <el-input v-model="form.sub_appid" />
+        <el-form-item label="结算账号">
+          <el-input v-model="form.settlement_account_no" maxlength="128" />
         </el-form-item>
-        <el-form-item label="回调地址 notify_url">
-          <el-input v-model="form.notify_url" placeholder="https://.../api/v1/payments/callback/wechat" />
+        <el-form-item label="开户行/渠道">
+          <el-input v-model="form.settlement_bank_name" maxlength="100" />
         </el-form-item>
-
-        <el-divider content-position="left">服务商快照</el-divider>
-        <el-form-item label="服务商 AppID">
-          <el-input v-model="form.sp_appid" placeholder="可由平台审核时回填" />
-        </el-form-item>
-        <el-form-item label="服务商商户号">
-          <el-input v-model="form.sp_mchid" placeholder="可由平台审核时回填" />
-        </el-form-item>
-
-        <el-divider content-position="left">历史直连兼容</el-divider>
-        <el-form-item label="商户号 mch_id">
-          <el-input v-model="form.mch_id" />
-        </el-form-item>
-        <el-form-item label="AppID">
-          <el-input v-model="form.app_id" />
-        </el-form-item>
-        <el-form-item label="APIv3 Key">
-          <el-input v-model="form.api_v3_key" show-password />
-        </el-form-item>
-        <el-form-item label="证书序列号">
-          <el-input v-model="form.cert_serial_no" />
-        </el-form-item>
-        <el-form-item label="商户私钥 PEM">
-          <el-input v-model="form.private_key_pem" type="textarea" :rows="5" placeholder="-----BEGIN PRIVATE KEY-----" />
-        </el-form-item>
-        <el-form-item label="商户证书 PEM">
-          <el-input v-model="form.cert_pem" type="textarea" :rows="5" placeholder="-----BEGIN CERTIFICATE-----" />
+        <el-form-item label="结算备注">
+          <el-input v-model="form.settlement_remark" type="textarea" :rows="3" maxlength="500" show-word-limit />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="save">保存并提交审核</el-button>

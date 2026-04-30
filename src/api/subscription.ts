@@ -8,6 +8,8 @@ export interface SubscriptionOrder {
   amount: string | number
   status: number
   order_no: string
+  created_by_admin_id?: number
+  created_by_admin_username?: string
   pay_transaction_id?: string
   pay_at?: string
   expire_before?: string
@@ -27,6 +29,12 @@ export interface CreateSubOrderResp {
   pay: any
 }
 
+export interface SubscriptionPayCallbackReq {
+  order_no: string
+  transaction_id?: string
+  paid_at?: string
+}
+
 export function createSubscriptionOrder(body: CreateSubOrderReq) {
   return request.post<any, CreateSubOrderResp>('/admin/subscription/orders', body)
 }
@@ -36,4 +44,9 @@ export function listSubscriptionOrders(params?: { page?: number; page_size?: num
     '/admin/subscription/orders',
     { params }
   )
+}
+
+// 本地联调：通过订阅回调接口模拟支付成功。
+export function callbackSubscriptionPaid(body: SubscriptionPayCallbackReq) {
+  return request.post('/public/subscription/callback', body)
 }

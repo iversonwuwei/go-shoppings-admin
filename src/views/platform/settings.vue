@@ -22,13 +22,13 @@
           <el-input v-model="form.support_email" style="max-width: 320px" />
         </el-form-item>
 
-        <el-divider content-position="left">平台微信支付（订阅付费统一商户号）</el-divider>
+        <el-divider content-position="left">平台微信支付（统一收款商户号）</el-divider>
         <el-alert
           type="warning"
           :closable="false"
           show-icon
           style="margin-bottom: 16px"
-          title="这里配置的是平台自己收取租户订阅费用的微信支付商户号，与各租户商品订单所用的商户号相互独立。"
+          title="这里配置平台统一微信收款商户号，用于租户订阅付费和顾客商品订单付款。"
         />
         <el-form-item label="AppID">
           <el-input v-model="form.wxpay_app_id" style="max-width: 420px" />
@@ -44,30 +44,6 @@
         </el-form-item>
         <el-form-item label="回调 URL">
           <el-input v-model="form.wxpay_notify_url" placeholder="https://your-domain/api/v1/public/subscription/callback" style="max-width: 560px" />
-        </el-form-item>
-
-        <el-divider content-position="left">微信支付服务商（顾客订单）</el-divider>
-        <el-alert
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 16px"
-          title="这里配置服务商主体信息，顾客商品订单会结合租户子商户号发起服务商 JSAPI 支付。"
-        />
-        <el-form-item label="服务商 AppID">
-          <el-input v-model="form.sp_appid" style="max-width: 420px" />
-        </el-form-item>
-        <el-form-item label="服务商商户号">
-          <el-input v-model="form.sp_mchid" style="max-width: 260px" />
-        </el-form-item>
-        <el-form-item label="服务商 APIv3 密钥">
-          <el-input v-model="form.sp_apiv3_key" show-password style="max-width: 420px" />
-        </el-form-item>
-        <el-form-item label="服务商证书序列号">
-          <el-input v-model="form.sp_cert_serial" style="max-width: 420px" />
-        </el-form-item>
-        <el-form-item label="顾客订单回调 URL">
-          <el-input v-model="form.partner_notify_url" placeholder="https://your-domain/api/v1/payments/callback/wechat" style="max-width: 560px" />
         </el-form-item>
       </el-form>
     </el-card>

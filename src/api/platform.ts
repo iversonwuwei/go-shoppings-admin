@@ -14,6 +14,9 @@ export interface TenantRow {
   contact_email: string
   plan_id: number
   plan_expire_at?: string
+  is_paid?: boolean
+  membership_start_at?: string
+  membership_end_at?: string
   status: number
   extra_features?: string[]
   reject_reason?: string

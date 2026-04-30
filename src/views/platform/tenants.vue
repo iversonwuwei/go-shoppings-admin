@@ -21,9 +21,18 @@
         <el-table-column label="套餐" width="120">
           <template #default="{ row }">{{ planName(row.plan_id) }}</template>
         </el-table-column>
-        <el-table-column label="到期时间" width="170">
+        <el-table-column label="付费状态" width="100">
           <template #default="{ row }">
-            <span :class="{ 'expired': isExpired(row.plan_expire_at) }">{{ formatDate(row.plan_expire_at) }}</span>
+            <el-tag :type="row.is_paid ? 'success' : 'warning'" size="small">
+              {{ row.is_paid ? '已付费' : '未付费' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="会员周期" min-width="260">
+          <template #default="{ row }">
+            <span :class="{ expired: isExpired(row.membership_end_at || row.plan_expire_at) }">
+              {{ formatPeriod(row) }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="附加功能" width="110">
@@ -261,6 +270,11 @@ function tagType(s: number): 'warning' | 'success' | 'danger' | 'info' {
 function formatDate(s?: string) {
   if (!s) return '-'
   return s.replace('T', ' ').slice(0, 19)
+}
+function formatPeriod(row: TenantRow) {
+  const start = formatDate(row.membership_start_at || row.created_at)
+  const end = formatDate(row.membership_end_at || row.plan_expire_at)
+  return `${start} 至 ${end}`
 }
 function isExpired(s?: string) {
   if (!s) return false

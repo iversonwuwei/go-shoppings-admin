@@ -10,6 +10,10 @@ export interface PaymentConfig {
   sp_mchid: string
   sub_appid: string
   sub_mchid: string
+  settlement_account_name: string
+  settlement_account_no: string
+  settlement_bank_name: string
+  settlement_remark: string
   api_v3_key: string
   cert_serial_no: string
   private_key_pem: string

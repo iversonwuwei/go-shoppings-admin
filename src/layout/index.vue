@@ -53,7 +53,7 @@ const allMenus = [
   { path: '/platform/tenants', title: '租户审核', icon: OfficeBuilding, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/plans', title: '套餐管理', icon: PriceTag, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/features', title: '功能目录', icon: Grid, role: 'platform', platformRoles: ['super', 'operator'] },
-  { path: '/platform/payment-audit', title: '收款配置审核', icon: Wallet, role: 'platform', platformRoles: ['super', 'finance'] },
+  { path: '/platform/payment-audit', title: '结算资料审核', icon: Wallet, role: 'platform', platformRoles: ['super', 'finance'] },
   { path: '/platform/carriers-audit', title: '物流承运商管理', icon: Van, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/after-sale-reasons', title: '售后原因', icon: Tickets, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/sms', title: '短信通知', icon: Message, role: 'platform', platformRoles: ['super', 'operator'] },
@@ -80,7 +80,7 @@ const allMenus = [
   { path: '/admin/delivery', title: '配送设置', icon: Box, role: 'tenant' },
   { path: '/admin/site', title: '商城装修', icon: Brush, role: 'tenant' },
   { path: '/admin/mini-qrcode', title: '小程序码', icon: Grid, role: 'tenant' },
-  { path: '/admin/settings/payment', title: '收款配置', icon: Wallet, role: 'tenant' },
+  { path: '/admin/settings/payment', title: '结算资料', icon: Wallet, role: 'tenant' },
   { path: '/admin/settings/carriers', title: '物流承运商', icon: Van, role: 'tenant' },
   { path: '/admin/billing', title: '订阅付费', icon: Money, role: 'tenant' },
 ]

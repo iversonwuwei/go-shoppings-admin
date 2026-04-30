@@ -14,6 +14,11 @@
             <br />试用期内必须先完成「首次付费」后才能切换到其他套餐。
           </template>
         </el-alert>
+        <el-alert class="mt-12" type="warning" :closable="false" show-icon>
+          <template #title>
+            操作路径：先创建订阅订单，再完成支付。若你在本地联调环境，可对待支付订单使用「一键模拟支付」直接验证套餐生效闭环。
+          </template>
+        </el-alert>
       </div>
     </el-card>
 
@@ -25,6 +30,9 @@
         </el-table-column>
         <el-table-column prop="amount" label="金额" width="120">
           <template #default="{ row }">¥ {{ row.amount }}</template>
+        </el-table-column>
+        <el-table-column label="创建人" width="150">
+          <template #default="{ row }">{{ creatorLabel(row) }}</template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
@@ -39,6 +47,20 @@
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="170">
           <template #default="{ row }">{{ fmt(row.created_at) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="220" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.status === 0 && isDev"
+              type="primary"
+              link
+              @click="mockPay(row)"
+            >
+              一键模拟支付
+            </el-button>
+            <span v-else-if="row.status === 0" class="muted">待真实微信支付回调</span>
+            <span v-else class="muted">-</span>
+          </template>
         </el-table-column>
       </el-table>
       <el-pagination
@@ -77,12 +99,45 @@
         <el-button type="primary" :loading="submitting" @click="submit">创建订单</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="payDlg" title="订阅订单已创建" width="560px">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="订单号">{{ createdOrderNo || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="支付参数状态">
+          {{ hasPayParams ? '已返回 pay 参数（待前端接入真实拉起支付）' : '未返回 pay 参数' }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <el-alert
+        class="mt-12"
+        type="info"
+        :closable="false"
+        show-icon
+        title="当前页面默认不直接拉起微信支付。生产请接入真实 JSAPI 支付调用并依赖回调更新订单状态。"
+      />
+      <el-alert
+        v-if="isDev"
+        class="mt-12"
+        type="success"
+        :closable="false"
+        show-icon
+        title="本地联调可点击下方“一键模拟支付成功”，验证套餐续费闭环。"
+      />
+      <template #footer>
+        <el-button @click="payDlg = false">关闭</el-button>
+        <el-button v-if="isDev" type="primary" :loading="paying" @click="mockPayByOrderNo(createdOrderNo)">一键模拟支付成功</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { listPlans, type Plan } from '@/api/plans'
-import { createSubscriptionOrder, listSubscriptionOrders, type SubscriptionOrder } from '@/api/subscription'
+import {
+  callbackSubscriptionPaid,
+  createSubscriptionOrder,
+  listSubscriptionOrders,
+  type SubscriptionOrder,
+} from '@/api/subscription'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 
@@ -92,10 +147,15 @@ const page = ref(1)
 const pageSize = ref(20)
 const loading = ref(false)
 const plans = ref<Plan[]>([])
+const isDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 
 const dlg = ref(false)
 const submitting = ref(false)
 const form = ref<{ plan_id?: number; billing_cycle: 'monthly' | 'yearly' }>({ billing_cycle: 'yearly' })
+const payDlg = ref(false)
+const paying = ref(false)
+const createdOrderNo = ref('')
+const hasPayParams = ref(false)
 
 const hasPaidOrder = computed(() => rows.value.some((r) => r.status === 1))
 
@@ -128,6 +188,9 @@ async function submit() {
       billing_cycle: form.value.billing_cycle,
     })
     ElMessage.success(`订单已创建：${r.order.order_no}`)
+    createdOrderNo.value = r.order.order_no
+    hasPayParams.value = !!r.pay
+    payDlg.value = true
     dlg.value = false
     load()
   } catch (e: any) {
@@ -135,6 +198,41 @@ async function submit() {
   } finally {
     submitting.value = false
   }
+}
+
+async function mockPayByOrderNo(orderNo?: string) {
+  if (!orderNo) {
+    ElMessage.warning('缺少订单号')
+    return
+  }
+  paying.value = true
+  try {
+    await callbackSubscriptionPaid({
+      order_no: orderNo,
+      transaction_id: `DEV-${Date.now()}`,
+      paid_at: new Date().toISOString(),
+    })
+    ElMessage.success('模拟支付成功，套餐状态已刷新')
+    payDlg.value = false
+    await load()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '模拟支付失败')
+  } finally {
+    paying.value = false
+  }
+}
+
+function mockPay(row: SubscriptionOrder) {
+  void mockPayByOrderNo(row.order_no)
+}
+
+function creatorLabel(row: SubscriptionOrder) {
+  if (row.created_by_admin_username && row.created_by_admin_id) {
+    return `${row.created_by_admin_username} #${row.created_by_admin_id}`
+  }
+  if (row.created_by_admin_username) return row.created_by_admin_username
+  if (row.created_by_admin_id) return `#${row.created_by_admin_id}`
+  return '-'
 }
 
 function fmt(s?: string) {
@@ -162,5 +260,11 @@ onMounted(async () => {
 }
 .mt-16 {
   margin-top: 16px;
+}
+.mt-12 {
+  margin-top: 12px;
+}
+.muted {
+  color: #909399;
 }
 </style>
