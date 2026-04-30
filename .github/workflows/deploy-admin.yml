@@ -1,0 +1,416 @@
+name: Admin CI/CD
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/deploy-admin.yml"
+      - ".dockerignore"
+      - "Dockerfile"
+      - "docker-compose.deploy.yml"
+      - "nginx.conf"
+      - "package.json"
+      - "package-lock.json"
+      - "index.html"
+      - "env.d.ts"
+      - "tsconfig.json"
+      - "tsconfig.node.json"
+      - "vite.config.ts"
+      - ".env.production"
+      - "public/**"
+      - "src/**"
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/deploy-admin.yml"
+      - ".dockerignore"
+      - "Dockerfile"
+      - "docker-compose.deploy.yml"
+      - "nginx.conf"
+      - "package.json"
+      - "package-lock.json"
+      - "index.html"
+      - "env.d.ts"
+      - "tsconfig.json"
+      - "tsconfig.node.json"
+      - "vite.config.ts"
+      - ".env.production"
+      - "public/**"
+      - "src/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-ci-cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify admin
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build admin assets
+        run: npm run build
+
+      - name: Validate Docker Compose file
+        run: ADMIN_IMAGE=wechat-mall-admin:test docker compose -f docker-compose.deploy.yml config --quiet
+
+      - name: Build admin Docker image
+        run: docker build -t wechat-mall-admin:${{ github.sha }} .
+
+  publish:
+    name: Publish SWR image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ format('{0}', 'production') }}
+    needs: verify
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare SWR image metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          HUAWEI_SWR_REGISTRY="swr.ap-southeast-3.myhuaweicloud.com"
+          HUAWEI_SWR_NAMESPACE="go-shoppings"
+
+          registry="${HUAWEI_SWR_REGISTRY%/}"
+          admin_repository="wechat-mall-admin"
+
+          {
+            echo "ADMIN_IMAGE=${registry}/${HUAWEI_SWR_NAMESPACE}/${admin_repository}:${GITHUB_SHA}"
+            echo "ADMIN_LATEST=${registry}/${HUAWEI_SWR_NAMESPACE}/${admin_repository}:latest"
+          } >> "$GITHUB_ENV"
+
+      - name: Login to Huawei SWR
+        shell: bash
+        env:
+          HUAWEI_SWR_USERNAME: ${{ secrets.HUAWEI_SWR_USERNAME }}
+          HUAWEI_SWR_PASSWORD: ${{ secrets.HUAWEI_SWR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          HUAWEI_SWR_REGISTRY="swr.ap-southeast-3.myhuaweicloud.com"
+          : "${HUAWEI_SWR_USERNAME:?Set GitHub secret HUAWEI_SWR_USERNAME}"
+          : "${HUAWEI_SWR_PASSWORD:?Set GitHub secret HUAWEI_SWR_PASSWORD}"
+          printf '%s\n' "$HUAWEI_SWR_PASSWORD" | docker login "$HUAWEI_SWR_REGISTRY" -u "$HUAWEI_SWR_USERNAME" --password-stdin
+
+      - name: Build and push admin image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -t "$ADMIN_IMAGE" \
+            -t "$ADMIN_LATEST" \
+            .
+          docker push "$ADMIN_IMAGE"
+          docker push "$ADMIN_LATEST"
+
+  deploy:
+    name: Deploy admin service
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment:
+      name: ${{ format('{0}', 'production') }}
+    needs:
+      - verify
+      - publish
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master') }}
+    env:
+      DEPLOY_HOST: 39.96.201.126
+      DEPLOY_USER: root
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_PORT: "22"
+      DEPLOY_PATH: /root/docker-compose/go-shoppings
+      ADMIN_DEPLOY_PATH: /root/docker-compose/go-shoppings-admin
+      ADMIN_HOST_PORT: "18081"
+      ADMIN_PUBLIC_NGINX_CONTAINER: go-nomads-nginx
+      ADMIN_PUBLIC_NGINX_CONF: /root/docker-compose/deployment/nginx/nginx.https.conf
+      HUAWEI_SWR_REGISTRY: swr.ap-southeast-3.myhuaweicloud.com
+      HUAWEI_SWR_NAMESPACE: go-shoppings
+      HUAWEI_SWR_ADMIN_REPOSITORY: wechat-mall-admin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare deployment image metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          HUAWEI_SWR_REGISTRY="${HUAWEI_SWR_REGISTRY:-swr.ap-southeast-3.myhuaweicloud.com}"
+          HUAWEI_SWR_NAMESPACE="${HUAWEI_SWR_NAMESPACE:-go-shoppings}"
+
+          registry="${HUAWEI_SWR_REGISTRY%/}"
+          admin_repository="${HUAWEI_SWR_ADMIN_REPOSITORY:-wechat-mall-admin}"
+
+          echo "ADMIN_IMAGE=${registry}/${HUAWEI_SWR_NAMESPACE}/${admin_repository}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEPLOY_HOST="${DEPLOY_HOST:-39.96.201.126}"
+          DEPLOY_USER="${DEPLOY_USER:-root}"
+          : "${DEPLOY_SSH_KEY:?Set GitHub secret DEPLOY_SSH_KEY}"
+
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          DEPLOY_PATH="${DEPLOY_PATH:-/root/docker-compose/go-shoppings}"
+          if [ -z "${ADMIN_DEPLOY_PATH:-}" ]; then
+            ADMIN_DEPLOY_PATH="${DEPLOY_PATH%/}-admin"
+          fi
+
+          {
+            echo "DEPLOY_HOST=$DEPLOY_HOST"
+            echo "DEPLOY_USER=$DEPLOY_USER"
+            echo "DEPLOY_PORT=$DEPLOY_PORT"
+            echo "DEPLOY_PATH=$DEPLOY_PATH"
+            echo "ADMIN_DEPLOY_PATH=$ADMIN_DEPLOY_PATH"
+          } >> "$GITHUB_ENV"
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Sync runtime deployment files
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v tar >/dev/null
+
+          bundle_dir="$(mktemp -d)"
+          trap 'rm -rf "$bundle_dir"' EXIT
+          cp docker-compose.deploy.yml "$bundle_dir/docker-compose.deploy.yml"
+
+          remote_check_cmd='command -v docker >/dev/null && docker compose version >/dev/null && command -v tar >/dev/null'
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "$remote_check_cmd"
+
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "ADMIN_DEPLOY_PATH=$(printf '%q' "$ADMIN_DEPLOY_PATH") bash -s" <<'REMOTE'
+          set -euo pipefail
+          mkdir -p "$ADMIN_DEPLOY_PATH"
+          find "$ADMIN_DEPLOY_PATH" -mindepth 1 -maxdepth 1 \
+            ! -name '.deploy-images.env' \
+            -exec rm -rf {} +
+          REMOTE
+
+          remote_extract_cmd="$(printf 'tar -xzf - -C %q' "$ADMIN_DEPLOY_PATH")"
+          tar -C "$bundle_dir" -czf - . | ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "$remote_extract_cmd"
+
+      - name: Login to Huawei SWR on server
+        shell: bash
+        env:
+          HUAWEI_SWR_USERNAME: ${{ secrets.HUAWEI_SWR_USERNAME }}
+          HUAWEI_SWR_PASSWORD: ${{ secrets.HUAWEI_SWR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          HUAWEI_SWR_REGISTRY="swr.ap-southeast-3.myhuaweicloud.com"
+          : "${HUAWEI_SWR_USERNAME:?Set GitHub secret HUAWEI_SWR_USERNAME}"
+          : "${HUAWEI_SWR_PASSWORD:?Set GitHub secret HUAWEI_SWR_PASSWORD}"
+
+          remote_login_cmd="$(printf 'docker login %q -u %q --password-stdin' "$HUAWEI_SWR_REGISTRY" "$HUAWEI_SWR_USERNAME")"
+          printf '%s\n' "$HUAWEI_SWR_PASSWORD" | ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "$remote_login_cmd"
+
+      - name: Deploy admin container
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ADMIN_IMAGE:?Missing admin image metadata}"
+          ADMIN_HOST_PORT="${ADMIN_HOST_PORT:-18081}"
+
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "ADMIN_DEPLOY_PATH=$(printf '%q' "$ADMIN_DEPLOY_PATH") ADMIN_IMAGE=$(printf '%q' "$ADMIN_IMAGE") ADMIN_HOST_PORT=$(printf '%q' "$ADMIN_HOST_PORT") bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$ADMIN_DEPLOY_PATH"
+
+          cat > .deploy-images.env <<IMAGES
+          ADMIN_IMAGE=$ADMIN_IMAGE
+          ADMIN_HOST_PORT=$ADMIN_HOST_PORT
+          IMAGES
+
+          compose_env=(--env-file .deploy-images.env)
+          docker compose "${compose_env[@]}" -f docker-compose.deploy.yml pull admin
+          docker compose "${compose_env[@]}" -f docker-compose.deploy.yml up -d --no-build admin
+          docker compose "${compose_env[@]}" -f docker-compose.deploy.yml ps
+          docker compose "${compose_env[@]}" -f docker-compose.deploy.yml exec -T admin wget -qO- http://127.0.0.1/healthz </dev/null >/dev/null
+          REMOTE
+
+      - name: Configure public Nginx IP route
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_nginx_container="${ADMIN_PUBLIC_NGINX_CONTAINER:-go-nomads-nginx}"
+          public_nginx_conf="${ADMIN_PUBLIC_NGINX_CONF:-/root/docker-compose/deployment/nginx/nginx.https.conf}"
+
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "ADMIN_DEPLOY_PATH=$(printf '%q' "$ADMIN_DEPLOY_PATH") DEPLOY_HOST=$(printf '%q' "$DEPLOY_HOST") PUBLIC_NGINX_CONTAINER=$(printf '%q' "$public_nginx_container") PUBLIC_NGINX_CONF=$(printf '%q' "$public_nginx_conf") bash -s" <<'REMOTE'
+          set -euo pipefail
+          public_host="$DEPLOY_HOST"
+          public_nginx_container="${PUBLIC_NGINX_CONTAINER:-go-nomads-nginx}"
+          public_nginx_conf="${PUBLIC_NGINX_CONF:-/root/docker-compose/deployment/nginx/nginx.https.conf}"
+
+          if [ ! -f "$public_nginx_conf" ]; then
+            echo "Skip public Nginx route: missing $public_nginx_conf"
+            exit 0
+          fi
+          if ! docker ps --format '{{.Names}}' | grep -qx "$public_nginx_container"; then
+            echo "Skip public Nginx route: container $public_nginx_container is not running"
+            exit 0
+          fi
+
+          cd "$ADMIN_DEPLOY_PATH"
+          compose_env=(--env-file .deploy-images.env)
+          admin_container="$(docker compose "${compose_env[@]}" -f docker-compose.deploy.yml ps -q admin)"
+          if [ -z "$admin_container" ]; then
+            echo "Missing admin container" >&2
+            exit 1
+          fi
+          admin_network="$(docker inspect "$admin_container" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' | head -n 1)"
+          if [ -z "$admin_network" ]; then
+            echo "Missing admin Docker network" >&2
+            exit 1
+          fi
+          if ! docker inspect "$public_nginx_container" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' | grep -qx "$admin_network"; then
+            docker network connect "$admin_network" "$public_nginx_container"
+          fi
+
+          block_file="$(mktemp)"
+          clean_file="$(mktemp)"
+          next_file="$(mktemp)"
+          trap 'rm -f "$block_file" "$clean_file" "$next_file"' EXIT
+
+          cat > "$block_file" <<'BLOCK'
+          # BEGIN GO_SHOPPINGS_ADMIN_IP
+          server {
+              listen 80 default_server;
+              server_name __PUBLIC_HOST__ _;
+
+              client_max_body_size 100M;
+              proxy_connect_timeout 60s;
+              proxy_send_timeout 60s;
+              proxy_read_timeout 60s;
+
+              location = /healthz {
+                  proxy_pass http://wechat-mall-gateway:80;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto http;
+              }
+
+              location /api/ {
+                  proxy_pass http://wechat-mall-gateway:80;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto http;
+                  add_header Access-Control-Allow-Origin * always;
+                  add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+                  add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With, X-Tenant-ID" always;
+                  if ($request_method = 'OPTIONS') { return 204; }
+              }
+
+              location /uploads/ {
+                  proxy_pass http://wechat-mall-gateway:80;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto http;
+              }
+
+              location = /admin-healthz {
+                  proxy_pass http://wechat-mall-admin:80/healthz;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto http;
+              }
+
+              location / {
+                  proxy_pass http://wechat-mall-admin:80;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto http;
+                  proxy_buffering off;
+                  proxy_request_buffering off;
+              }
+          }
+          # END GO_SHOPPINGS_ADMIN_IP
+          BLOCK
+          sed -i "s/__PUBLIC_HOST__/${public_host}/g" "$block_file"
+
+          cp "$public_nginx_conf" "${public_nginx_conf}.bak.${GITHUB_RUN_ID:-manual}.$(date +%Y%m%d%H%M%S)"
+
+          awk '
+            function delta(line, t, opens, closes) {
+              t = line; opens = gsub(/\{/, "", t);
+              t = line; closes = gsub(/\}/, "", t);
+              return opens - closes;
+            }
+            index($0, "# BEGIN GO_SHOPPINGS_ADMIN_IP") { managed = 1; next }
+            managed { if (index($0, "# END GO_SHOPPINGS_ADMIN_IP")) managed = 0; next }
+            $0 ~ /SHOPPING API over HTTP for IP-based access/ { legacy = 1; legacy_started = 0; legacy_depth = 0; next }
+            legacy {
+              if ($0 ~ /^[[:space:]]*server[[:space:]]*\{/) legacy_started = 1;
+              if (legacy_started) {
+                legacy_depth += delta($0);
+                if (legacy_depth <= 0 && $0 ~ /\}/) {
+                  legacy = 0; legacy_started = 0; legacy_depth = 0;
+                }
+              }
+              next;
+            }
+            { print }
+          ' "$public_nginx_conf" > "$clean_file"
+
+          awk '
+            NR == FNR { block = block $0 ORS; next }
+            !inserted && /^[[:space:]]*server[[:space:]]*\{/ { printf "%s\n", block; inserted = 1 }
+            { print }
+            END { if (!inserted) printf "%s\n", block }
+          ' "$block_file" "$clean_file" > "$next_file"
+
+          cat "$next_file" > "$public_nginx_conf"
+          docker exec "$public_nginx_container" nginx -t
+          docker exec "$public_nginx_container" nginx -s reload
+
+          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS http://127.0.0.1/admin-healthz >/dev/null
+          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS http://127.0.0.1/api/v1/public/plans >/dev/null
+          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS http://127.0.0.1/ >/dev/null
+          REMOTE
+
+      - name: Verify public admin endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS "http://${DEPLOY_HOST}/admin-healthz" >/dev/null
+          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS "http://${DEPLOY_HOST}/api/v1/public/plans" >/dev/null
+          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS "http://${DEPLOY_HOST}/" >/dev/null

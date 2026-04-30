@@ -1,0 +1,9 @@
+name: go-shoppings-admin
+
+services:
+  admin:
+    image: "${ADMIN_IMAGE:?Set ADMIN_IMAGE}"
+    container_name: wechat-mall-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_HOST_PORT:-18081}:80"

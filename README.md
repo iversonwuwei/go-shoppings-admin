@@ -60,3 +60,7 @@ pnpm build
 ```bash
 VITE_API_BASE_URL=https://api.example.com/api/v1 pnpm build
 ```
+
+## 部署
+
+Admin 可通过 GitHub Actions 构建 Docker 镜像、推送到华为云 SWR，并在与 backend 相同的服务器上用镜像部署。详见 [DEPLOYMENT.md](DEPLOYMENT.md)。
