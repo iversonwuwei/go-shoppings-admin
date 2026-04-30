@@ -1,6 +1,6 @@
 import { useUserStore } from '@/stores/user'
 import axios from 'axios'
-import request from './request'
+import request, { apiURL } from './request'
 
 export interface Product {
   id: number
@@ -64,7 +64,7 @@ function authHeaders() {
 }
 
 export async function downloadProductImportTemplate() {
-  const resp = await axios.get('/api/v1/admin/products/import-template', {
+  const resp = await axios.get(apiURL('/admin/products/import-template'), {
     responseType: 'blob',
     headers: authHeaders(),
   })

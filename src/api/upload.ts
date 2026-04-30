@@ -1,5 +1,6 @@
 import { useUserStore } from '@/stores/user'
 import axios from 'axios'
+import { apiURL } from './request'
 
 export interface UploadResult {
   url: string
@@ -31,7 +32,7 @@ export async function uploadImage(file: File, folder = 'common', scope?: 'admin'
   const effective = scope || (user.role === 'platform' ? 'platform' : 'admin')
   const form = new FormData()
   form.append('file', file)
-  const resp = await axios.post(`/api/v1/${effective}/upload/image`, form, {
+  const resp = await axios.post(apiURL(`/${effective}/upload/image`), form, {
     params: { folder },
     headers: {
       Authorization: user.token ? `Bearer ${user.token}` : '',
@@ -50,7 +51,7 @@ export async function uploadImage(file: File, folder = 'common', scope?: 'admin'
 export async function generateAIImage(body: GenerateAIImageBody, scope?: 'admin' | 'platform'): Promise<UploadResult> {
   const user = useUserStore()
   const effective = scope || (user.role === 'platform' ? 'platform' : 'admin')
-  const resp = await axios.post(`/api/v1/${effective}/upload/ai-image`, body, {
+  const resp = await axios.post(apiURL(`/${effective}/upload/ai-image`), body, {
     headers: {
       Authorization: user.token ? `Bearer ${user.token}` : '',
       'X-Tenant-ID': user.tenantId ? String(user.tenantId) : '',

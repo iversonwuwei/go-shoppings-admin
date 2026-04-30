@@ -5,7 +5,7 @@ SaaS 微信商城 · 管理后台（Vue 3 + Vite + TypeScript + Element Plus + P
 
 ## 目录结构
 
-```
+```text
 src/
   api/          axios 封装 + 业务 API（auth/platform/product/order）
   layout/       通用后台布局（侧边栏 + 头部 + 主区）
@@ -35,8 +35,9 @@ src/
 # 1. 安装依赖（推荐 pnpm；npm/yarn 亦可）
 pnpm install      # 或 npm install
 
-# 2. 确保后端已运行在 http://127.0.0.1:18080（vite 已配置 /api 代理）
-#    如需改用其他后端端口，可设置代理目标：
+# 2. 默认后端地址为公网 IP http://39.96.201.126
+#    开发环境请求 /api/v1，并由 Vite 代理到 http://39.96.201.126
+#    如需临时改用其他后端，可设置代理目标：
 #    VITE_API_PROXY_TARGET=http://127.0.0.1:8080 npm run dev
 # 3. 启动开发服务器（默认 5173）
 pnpm dev
@@ -52,4 +53,10 @@ pnpm dev
 ```bash
 pnpm build
 # 产物输出到 dist/，可被任意静态服务器或反向代理托管
+```
+
+生产构建默认直连 `http://39.96.201.126/api/v1`。如需覆盖，可设置：
+
+```bash
+VITE_API_BASE_URL=https://api.example.com/api/v1 pnpm build
 ```

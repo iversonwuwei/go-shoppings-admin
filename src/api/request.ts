@@ -9,8 +9,17 @@ export interface ApiResult<T = any> {
   data: T
 }
 
+const defaultApiBaseURL = 'http://39.96.201.126/api/v1'
+
+export const apiBaseURL = (import.meta.env.VITE_API_BASE_URL || defaultApiBaseURL).replace(/\/+$/, '')
+
+export function apiURL(path: string) {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${apiBaseURL}${normalizedPath}`
+}
+
 const request = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiBaseURL,
   timeout: 15000,
 })
 
