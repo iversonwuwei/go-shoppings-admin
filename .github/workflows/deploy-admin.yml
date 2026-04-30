@@ -402,15 +402,53 @@ jobs:
           docker exec "$public_nginx_container" nginx -t
           docker exec "$public_nginx_container" nginx -s reload
 
-          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS http://127.0.0.1/admin-healthz >/dev/null
-          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS http://127.0.0.1/api/v1/public/plans >/dev/null
-          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS http://127.0.0.1/ >/dev/null
+          wait_for_url() {
+            url="$1"
+            label="$2"
+            attempt=1
+            while [ "$attempt" -le 12 ]; do
+              if curl -fsS "$url" >/dev/null; then
+                echo "$label is ready"
+                return 0
+              fi
+              if [ "$attempt" -eq 12 ]; then
+                echo "$label did not become ready: $url" >&2
+                curl -i -sS "$url" | sed -n '1,30p' >&2 || true
+                return 1
+              fi
+              sleep 5
+              attempt=$((attempt + 1))
+            done
+          }
+
+          wait_for_url http://127.0.0.1/admin-healthz admin-healthz
+          wait_for_url http://127.0.0.1/api/v1/public/plans public-plans-api
+          wait_for_url http://127.0.0.1/ admin-root
           REMOTE
 
       - name: Verify public admin endpoint
         shell: bash
         run: |
           set -euo pipefail
-          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS "http://${DEPLOY_HOST}/admin-healthz" >/dev/null
-          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS "http://${DEPLOY_HOST}/api/v1/public/plans" >/dev/null
-          curl --retry 12 --retry-delay 5 --retry-connrefused -fsS "http://${DEPLOY_HOST}/" >/dev/null
+          wait_for_url() {
+            url="$1"
+            label="$2"
+            attempt=1
+            while [ "$attempt" -le 12 ]; do
+              if curl -fsS "$url" >/dev/null; then
+                echo "$label is ready"
+                return 0
+              fi
+              if [ "$attempt" -eq 12 ]; then
+                echo "$label did not become ready: $url" >&2
+                curl -i -sS "$url" | sed -n '1,30p' >&2 || true
+                return 1
+              fi
+              sleep 5
+              attempt=$((attempt + 1))
+            done
+          }
+
+          wait_for_url "http://${DEPLOY_HOST}/admin-healthz" public-admin-healthz
+          wait_for_url "http://${DEPLOY_HOST}/api/v1/public/plans" public-plans-api
+          wait_for_url "http://${DEPLOY_HOST}/" public-admin-root
