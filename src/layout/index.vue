@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout">
-    <el-aside width="220px" class="sidebar">
+    <el-aside width="220px" class="sidebar desktop-sidebar">
       <div class="logo">SaaS 商城后台</div>
       <el-menu :default-active="route.path" router background-color="#001529" text-color="#c9d1d9" active-text-color="#fff">
         <el-menu-item v-for="m in menus" :key="m.path" :index="m.path">
@@ -9,9 +9,28 @@
         </el-menu-item>
       </el-menu>
     </el-aside>
-    <el-container>
+    <el-drawer v-model="mobileMenuOpen" direction="ltr" size="260px" :with-header="false" class="mobile-nav-drawer">
+      <div class="sidebar drawer-sidebar">
+        <div class="logo">SaaS 商城后台</div>
+        <el-menu
+          :default-active="route.path"
+          router
+          background-color="#001529"
+          text-color="#c9d1d9"
+          active-text-color="#fff"
+          @select="mobileMenuOpen = false"
+        >
+          <el-menu-item v-for="m in menus" :key="m.path" :index="m.path">
+            <el-icon><component :is="m.icon" /></el-icon>
+            <span>{{ m.title }}</span>
+          </el-menu-item>
+        </el-menu>
+      </div>
+    </el-drawer>
+    <el-container class="content-shell">
       <el-header class="header">
-        <div>
+        <div class="header-left">
+          <el-button class="mobile-menu-button" text :icon="Menu" aria-label="打开导航菜单" @click="mobileMenuOpen = true" />
           <el-tag :type="user.isPlatform ? 'danger' : 'success'">
             {{ user.isPlatform ? '平台' : '商户' }}
           </el-tag>
@@ -39,12 +58,13 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
 import { ArrowDown, Box, Brush, Coin, Cpu, DataBoard, Discount, Goods, Grid, Key, Link, Location, Medal, Menu, Message, Money, OfficeBuilding, Present, PriceTag, Setting, Share, Tickets, Timer, User, Van, Wallet } from '@element-plus/icons-vue'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
 const user = useUserStore()
+const mobileMenuOpen = ref(false)
 
 const iconMap: Record<string, any> = { DataBoard, OfficeBuilding, Goods, Tickets, Wallet, Van, PriceTag, Grid, User, Medal, Timer, Discount, Coin, Present, Share, Message, Key, Box, Brush, Link, Cpu, Location }
 
@@ -97,6 +117,13 @@ const menus = computed(() =>
 )
 const currentTitle = computed(() => (route.meta.title as string) || '')
 
+watch(
+  () => route.fullPath,
+  () => {
+    mobileMenuOpen.value = false
+  },
+)
+
 function handleCmd(cmd: string) {
   if (cmd === 'logout') {
     user.logout()
@@ -109,6 +136,8 @@ void iconMap
 <style scoped lang="scss">
 .layout {
   height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 .sidebar {
   background: #001529;
@@ -127,16 +156,40 @@ void iconMap
     border-right: none;
   }
 }
+.content-shell {
+  min-width: 0;
+  min-height: 0;
+}
+.drawer-sidebar {
+  min-height: 100%;
+}
+:global(.mobile-nav-drawer .el-drawer__body) {
+  padding: 0;
+  background: #001529;
+}
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  .header-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .mobile-menu-button {
+    display: none;
+    margin-right: 8px;
+  }
   .title {
     margin-left: 12px;
     font-size: 16px;
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .user {
     cursor: pointer;
@@ -146,7 +199,40 @@ void iconMap
   }
 }
 .main {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: auto;
   background: #f0f2f5;
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none;
+  }
+
+  .header {
+    height: 52px;
+    padding: 0 12px;
+
+    .mobile-menu-button {
+      display: inline-flex;
+      flex: 0 0 auto;
+    }
+
+    .title {
+      margin-left: 8px;
+      font-size: 15px;
+    }
+
+    .user {
+      max-width: 128px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
 }
 </style>

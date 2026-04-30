@@ -520,4 +520,13 @@ function preview(url: string) {
 .tile-ai:hover { border-color: #2f7ff0; color: #2f7ff0; background: #ecf5ff; }
 .tip { margin-top: 4px; font-size: 12px; }
 .hint { margin-top: 8px; color: #9ca3af; font-size: 12px; }
+
+@media (max-width: 480px) {
+  .img-grid { gap: 8px; }
+  .img-card,
+  .tile {
+    width: 96px;
+    height: 96px;
+  }
+}
 </style>

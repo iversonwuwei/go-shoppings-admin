@@ -506,4 +506,33 @@ async function submitReset() {
   display: flex;
   gap: 12px;
 }
+
+@media (max-width: 560px) {
+  .login-wrap {
+    align-items: flex-start;
+    min-height: 100vh;
+    height: auto;
+    padding: 16px;
+    overflow: auto;
+  }
+
+  .login-card {
+    width: 100%;
+    margin: 24px 0;
+  }
+
+  .hint {
+    align-items: flex-start;
+    flex-direction: column;
+
+    .hint-tip {
+      margin-left: 0;
+    }
+  }
+
+  .code-row,
+  .apply-row {
+    flex-direction: column;
+  }
+}
 </style>
