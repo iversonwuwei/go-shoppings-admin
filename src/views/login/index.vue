@@ -6,8 +6,8 @@
       </template>
 
       <el-radio-group v-model="role" class="role" size="large">
-        <el-radio-button label="platform">平台登录</el-radio-button>
-        <el-radio-button label="tenant">商户登录</el-radio-button>
+        <el-radio-button value="platform">平台登录</el-radio-button>
+        <el-radio-button value="tenant">商户登录</el-radio-button>
       </el-radio-group>
 
       <el-tabs v-model="mode" class="mode-tabs">
@@ -52,8 +52,8 @@
       </el-tabs>
 
       <div class="hint">
-        <el-link type="primary" :underline="false" @click="openForgot">忘记密码？</el-link>
-        <el-link type="success" :underline="false" @click="openApply">申请入驻</el-link>
+        <el-link type="primary" underline="never" @click="openForgot">忘记密码？</el-link>
+        <el-link type="success" underline="never" @click="openApply">申请入驻</el-link>
         <span class="hint-tip">
           <span v-if="role === 'platform'">默认平台账号: admin / admin123</span>
           <span v-else-if="isDev">本地演示租户: TEST001 / smokeadmin22 / admin123</span>

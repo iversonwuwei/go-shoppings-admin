@@ -230,8 +230,8 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
       <p class="sub">先免费试用7 天，试用期内可随时付费续订，随业务增长灵活升级</p>
       <div class="billing-switch">
         <el-radio-group v-model="billing" size="large">
-          <el-radio-button label="monthly">按月付</el-radio-button>
-          <el-radio-button label="yearly">按年付<span class="save-tip">更划算</span></el-radio-button>
+          <el-radio-button value="monthly">按月付</el-radio-button>
+          <el-radio-button value="yearly">按年付<span class="save-tip">更划算</span></el-radio-button>
         </el-radio-group>
       </div>
       <div v-loading="loading" class="plans">
@@ -317,8 +317,8 @@ onMounted(() => { loadPlans(); loadFeatureLabels() })
         </el-form-item>
         <el-form-item label="计费周期" required>
           <el-radio-group v-model="form.billing_cycle">
-            <el-radio-button label="monthly">按月付</el-radio-button>
-            <el-radio-button label="yearly">按年付（更划算）</el-radio-button>
+            <el-radio-button value="monthly">按月付</el-radio-button>
+            <el-radio-button value="yearly">按年付（更划算）</el-radio-button>
           </el-radio-group>
           <div class="price-summary">{{ priceSummary }}</div>
         </el-form-item>
