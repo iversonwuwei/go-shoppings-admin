@@ -77,13 +77,9 @@ async function sendApplyCode() {
   }
   sendingCode.value = true
   try {
-    const r = await sendVerifyCode(form.contact_phone, 'apply', { scope: 'public' })
+    await sendVerifyCode(form.contact_phone, 'apply', { scope: 'public' })
     startApplyCountdown()
-    if (r?.dev_code) {
-      ElMessage.success(`验证码已发送（联调：${r.dev_code}）`)
-    } else {
-      ElMessage.success('验证码已发送')
-    }
+    ElMessage.success('验证码已发送')
   } finally {
     sendingCode.value = false
   }

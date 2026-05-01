@@ -52,7 +52,7 @@ request.interceptors.response.use(
     if (status === 401) {
       const user = useUserStore()
       user.logout()
-      router.replace('/login')
+      void router.replace('/login').catch(() => undefined)
     }
     ElMessage.error(msg)
     return Promise.reject(err)

@@ -7,8 +7,8 @@ export interface SmsSettings {
   access_key: string
   access_secret: string
   sign_name: string
-  region: string
-  remark: string
+  region?: string
+  remark?: string
 }
 
 export interface SmsTemplate {
@@ -48,8 +48,11 @@ export function getSmsSettings() {
 export function updateSmsSettings(data: Partial<SmsSettings>) {
   return request.put<any, SmsSettings>('/platform/sms/settings', data)
 }
-export function listSmsTemplates(params?: { tenant_id?: number }) {
-  return request.get<any, SmsTemplate[]>('/platform/sms/templates', { params })
+export function listSmsTemplates() {
+  return request.get<any, SmsTemplate[]>('/platform/sms/templates')
+}
+export function createSmsTemplate(data: Partial<SmsTemplate>) {
+  return request.post<any, SmsTemplate>('/platform/sms/templates', data)
 }
 export function updateSmsTemplate(id: number, data: Partial<SmsTemplate>) {
   return request.put<any, { id: number }>(`/platform/sms/templates/${id}`, data)
@@ -57,6 +60,6 @@ export function updateSmsTemplate(id: number, data: Partial<SmsTemplate>) {
 export function deleteSmsTemplate(id: number) {
   return request.delete<any, null>(`/platform/sms/templates/${id}`)
 }
-export function listSmsLogs(params: { tenant_id?: number; page?: number; size?: number; phone?: string }) {
+export function listSmsLogs(params: { page?: number; size?: number; phone?: string }) {
   return request.get<any, PagedList<SmsLog>>('/platform/sms/logs', { params })
 }

@@ -54,11 +54,6 @@
       <div class="hint">
         <el-link type="primary" underline="never" @click="openForgot">忘记密码？</el-link>
         <el-link type="success" underline="never" @click="openApply">申请入驻</el-link>
-        <span class="hint-tip">
-          <span v-if="role === 'platform'">默认平台账号: admin / admin123</span>
-          <span v-else-if="isDev">本地演示租户: TEST001 / smokeadmin22 / admin123</span>
-          <span v-else>请使用申请入驻时设置的租户编号、管理员账号和密码登录</span>
-        </span>
       </div>
     </el-card>
 
@@ -292,13 +287,9 @@ async function handleSendCode(phone: string, purpose: VerifyPurpose, tenantId: n
   try {
     const scope = target === 'apply' ? 'public' : role.value === 'platform' ? 'platform' : 'tenant'
     const tid = target !== 'apply' && role.value === 'tenant' ? tenantId : undefined
-    const r = await sendVerifyCode(phone, purpose, { scope, tenantId: tid })
+    await sendVerifyCode(phone, purpose, { scope, tenantId: tid })
     startCountdown(target)
-    if (r?.dev_code) {
-      ElMessage.success(`验证码已发送（联调：${r.dev_code}）`)
-    } else {
-      ElMessage.success('验证码已发送')
-    }
+    ElMessage.success('验证码已发送')
   } finally {
     sending.value = false
   }
@@ -500,7 +491,6 @@ async function submitReset() {
   font-size: 12px;
   color: #999;
   gap: 12px;
-  .hint-tip { font-size: 12px; margin-left: auto; }
 }
 .apply-row {
   display: flex;
@@ -524,10 +514,6 @@ async function submitReset() {
   .hint {
     align-items: flex-start;
     flex-direction: column;
-
-    .hint-tip {
-      margin-left: 0;
-    }
   }
 
   .code-row,
