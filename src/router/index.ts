@@ -83,6 +83,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '平台设置', role: 'platform', icon: 'Setting' },
       },
       {
+        path: 'platform/privacy',
+        name: 'PlatformPrivacy',
+        component: () => import('@/views/platform/privacy.vue'),
+        meta: { title: '隐私协议', role: 'platform', icon: 'Tickets' },
+      },
+      {
         path: 'platform/users',
         name: 'PlatformUsers',
         component: () => import('@/views/platform/users.vue'),

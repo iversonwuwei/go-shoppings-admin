@@ -81,6 +81,7 @@ const allMenus = [
   { path: '/platform/domains', title: '域名审核', icon: Link, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/deployments', title: '私有部署', icon: Cpu, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/settings', title: '平台设置', icon: Setting, role: 'platform', platformRoles: ['super'] },
+  { path: '/platform/privacy', title: '隐私协议', icon: Tickets, role: 'platform', platformRoles: ['super'] },
   { path: '/platform/users', title: '平台用户', icon: User, role: 'platform', platformRoles: ['super'] },
   { path: '/platform/categories', title: '商品分类', icon: Menu, role: 'platform', platformRoles: ['super', 'operator'] },
   { path: '/platform/regions', title: '城市信息', icon: Location, role: 'platform', platformRoles: ['super', 'operator'] },

@@ -9,7 +9,9 @@ export interface ApiResult<T = any> {
   data: T
 }
 
-const defaultApiBaseURL = 'http://39.96.201.126/api/v1'
+const defaultApiBaseURL = import.meta.env.DEV
+  ? '/api/v1'
+  : 'http://39.96.201.126/api/v1'
 
 export const apiBaseURL = (import.meta.env.VITE_API_BASE_URL || defaultApiBaseURL).replace(/\/+$/, '')
 

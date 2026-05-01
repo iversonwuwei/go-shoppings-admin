@@ -6,6 +6,11 @@ export interface PlatformGlobalSettings {
   platform_logo: string
   support_phone: string
   support_email: string
+  privacy_policy_title: string
+  privacy_policy_effective_date: string
+  privacy_policy_content: string
+  privacy_policy_contact_phone: string
+  privacy_policy_contact_email: string
   wxpay_app_id: string
   wxpay_mch_id: string
   wxpay_apiv3_key: string
