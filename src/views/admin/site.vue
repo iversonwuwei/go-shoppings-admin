@@ -224,7 +224,7 @@
           type="info"
           show-icon
           :closable="false"
-          title="当前登录租户自行生成本租户小程序码，编码同生产小程序码一致的租户入口参数；正式发布时可用 scene 调微信接口生成。"
+          title="生成当前租户的微信小程序码，扫码进入平台统一小程序；需要后端已配置平台小程序 AppID 和 AppSecret。"
           style="margin-bottom: 16px"
         />
         <div class="mini-code-layout">
@@ -247,6 +247,12 @@
             </el-form-item>
             <el-form-item label="完整路径">
               <span class="mono">{{ miniQRCode?.path || '-' }}</span>
+            </el-form-item>
+            <el-form-item label="生成版本">
+              <span class="mono">{{ miniQRCode?.env_version || '-' }}</span>
+            </el-form-item>
+            <el-form-item label="校验页面">
+              <span class="mono">{{ miniQRCode ? (miniQRCode.check_path ? '是' : '否') : '-' }}</span>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :loading="miniQrLoading" @click="generateMiniQRCode">生成本租户小程序码</el-button>
@@ -588,6 +594,8 @@ function copyMiniQRCodeEntry() {
     `scene=${item.scene}`,
     `query=${item.query}`,
     `path=${item.path}`,
+    `env_version=${item.env_version || '-'}`,
+    `check_path=${item.check_path ? 'true' : 'false'}`,
   ].join('\n'))
 }
 

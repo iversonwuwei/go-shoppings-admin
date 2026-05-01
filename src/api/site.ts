@@ -71,6 +71,9 @@ export interface MiniQRCode {
   query: string
   path: string
   qr_payload: string
+  provider?: string
+  env_version?: string
+  check_path?: boolean
   image_data_url: string
   simulated: boolean
 }
